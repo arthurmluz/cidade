@@ -2,23 +2,18 @@
 // PUCRS/Escola Polit�cnica
 // COMPUTA��O GR�FICA
 //
-// Programa basico para criar aplicacoes 2D em OpenGL
+// Programa b�sico para criar aplicacoes 3D em OpenGL
 //
 // Marcio Sarroglia Pinho
 // pinho@pucrs.br
-// 
-//  Trabalho 3 - Cidade
-//   Arthur Musskopf da Luz & Manoella Jarces de Azevedo
 // **********************************************************************
-
 
 #include <iostream>
 #include <cmath>
 #include <ctime>
-#include <fstream>
-
 
 using namespace std;
+
 
 #ifdef WIN32
 #include <windows.h>
@@ -35,115 +30,75 @@ using namespace std;
 #include <GL/glut.h>
 #endif
 
-#include "app/Ponto.h"
-#include "app/Instancia.h"
-#include "app/Modelo.h"
-
 #include "app/Temporizador.h"
 #include "app/ListaDeCoresRGB.h"
+#include "app/Ponto.h"
+#include "app/Modelo.h"
 
-#include "util/bezierFunc.h"
-#include "util/desenhar.h"
-#include "util/util.h"
-#include "util/movimentos.h"
+#define WIDTH 900
+#define HEIGHT 900
 
-#define NVIDAS 3 
-#define NTIROS 10
-#define VELOC_TIROS 1
-
-#define NMONSTROS 4
-#define MODELOS_MONSTROS 4
-#define VELOC_TIROS_INIMIGOS 1 // multiplicador de velocidade
-#define DELAY_TIROS_INIMIGOS 3 // delay para atirar de novo
-#define RAND_TIROS_INIMIGOS 20 // chance de atirar 
-
-#define TAM_MAPA 100 // MIN(TAM_MAPA, TAM_MAPA)  MAX(TAM_MAPA, TAM_MAPA)
-#define TAM_JANELA 800
+int TABULEIRO_X {20};
+int TABULEIRO_Z {20};
 
 Temporizador T;
 double AccumDeltaT=0;
 
-//Instancias
-Instancia Universo[NMONSTROS];
-Instancia jogador, teste;
+GLfloat AspectRatio, angulo=0;
 
-// Curvas
-Ponto curvas[NMONSTROS][3];
+// Controle do modo de projecao
+// 0: Projecao Paralela Ortografica; 1: Projecao Perspectiva
+// A funcao "PosicUser" utiliza esta variavel. O valor dela eh alterado
+// pela tecla 'p'
+int ModoDeProjecao = 1;
 
-// Modelo dos personagens
-Poligono tiro, derrota, vitoria;
-Modelo monstro[MODELOS_MONSTROS], disparador;
+// Controle do modo de projecao
+// 0: Wireframe; 1: Faces preenchidas
+// A funcao "Init" utiliza esta variavel. O valor dela eh alterado
+// pela tecla 'e'
+int ModoDeExibicao = 1;
 
-// Limites l�gicos da �rea de desenho
-Ponto Min, Max;
+// posicao inicial do observador
+int obsX = 0, obsY = 15, obsZ = 30;
 
-// pausar (P) e debug (D)
-bool pause = false, debug = false, imune = false;
-
-// tiros do jogador
-int atirados = 0;
-// escala do jogador e outras coisas
-constexpr float escala = 2 * TAM_MAPA/10.0;
-
-int monstrosVivos = NMONSTROS;
-
-bool animando = false;
-
-void CriaInstancias();
-// **************************************************************
-//
-// **************************************************************
-void CarregaModelos()
-{
-    monstro[0].LeObjeto("txts/monstro1.txt");
-    monstro[1].LeObjeto("txts/monstro2.txt");
-    monstro[2].LeObjeto("txts/monstro3.txt");
-    monstro[3].LeObjeto("txts/monstro4.txt");
-    disparador.LeObjeto("txts/nave.txt");
-    tiro.LePoligono("txts/tiro.txt");
-    derrota.LeObjeto("txts/derrota.txt");
-    vitoria.LeObjeto("txts/vitoria.txt");
-}
-// **************************************************************
-//
-// **************************************************************
-void CriaCurvas()
-{
-    for(int i = 0; i < NMONSTROS; i++){
-        curvas[i][0] = pontoAleatorioMonstro(Min, Max, i, MODELOS_MONSTROS);
-        curvas[i][1] = pontoAleatorio(Min, Max);
-        curvas[i][2] = pontoAleatorio(Min, Max);
-    }
-}
-// **************************************************************
-//
-// **************************************************************
-void init()
-{
-    srand(time(NULL));
-    // Define a cor do fundo da tela (CINZA)
-  //  glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    float d = TAM_MAPA;
-
-    Min = Ponto(-d,-d);
-    Max = Ponto(d,d);
-    printf("Tamanho Mapa: %d.\n", TAM_MAPA);
-
-    CarregaModelos();
-    CriaCurvas();
-    CriaInstancias();
-    
-}
+Modelo tabuleiro; 
 
 double nFrames=0;
 double TempoTotal=0;
+Ponto CantoEsquerdo = {-static_cast<float>(TABULEIRO_X),-1,-static_cast<float>(TABULEIRO_Z)};
+// **********************************************************************
+//  void init(void)
+//        Inicializa os parametros globais de OpenGL
+// **********************************************************************
+void init(void)
+{
+    glClearColor(0.0f, 0.0f, 0.5, 1.0f); // Fundo de tela preto
 
-// **************************************************************
+    glClearDepth(1.0);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    glEnable (GL_CULL_FACE );
+    glEnable(GL_NORMALIZE);
+    glShadeModel(GL_SMOOTH);
+    //glShadeModel(GL_FLAT);
+    
+    tabuleiro.LeObjeto("txts/tabuleiro.txt");
+    TABULEIRO_X = tabuleiro.getLinhas();
+    TABULEIRO_Z = tabuleiro.getColunas();
+
+    obsY = TABULEIRO_Z/2, obsZ = TABULEIRO_Z/2;
+
+    glColorMaterial ( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
+    if (ModoDeExibicao) // Faces Preenchidas??
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    else
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+}
+
+// **********************************************************************
 //
-// **************************************************************
+// **********************************************************************
 void animate()
 {
     double dt;
@@ -155,361 +110,212 @@ void animate()
     if (AccumDeltaT > 1.0/30) // fixa a atualiza��o da tela em 30
     {
         AccumDeltaT = 0;
+        angulo+= 1;
         glutPostRedisplay();
     }
     if (TempoTotal > 5.0)
     {
- //       cout << "Tempo Acumulado: "  << TempoTotal << " segundos. " ;
-//        cout << "Nros de Frames sem desenho: " << nFrames << endl;
-//        cout << "FPS(sem desenho): " << nFrames/TempoTotal << endl;
- //       TempoTotal = 0;
+        TempoTotal = 0;
         nFrames = 0;
     }
 }
-// **************************************************************
-//  void reshape( int w, int h )
-//  trata o redimensionamento da janela OpenGL
-// **************************************************************
-void reshape( int w, int h )
-{
-    // Reset the coordinate system before modifying
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    // Define a area a ser ocupada pela area OpenGL dentro da Janela
-    glViewport(0, 0, w, h);
-    // Define os limites logicos da area OpenGL dentro da Janela
-    glOrtho(Min.x,Max.x, Min.y,Max.y, -10,+10);
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+
+// **********************************************************************
+//  void DesenhaCubo()
+// **********************************************************************
+void DesenhaCubo(float tamAresta)
+{
+    glBegin ( GL_QUADS );
+    // Front Face
+    glNormal3f(0,0,1);
+    glVertex3f(-tamAresta/2, -tamAresta/2,  tamAresta/2);
+    glVertex3f( tamAresta/2, -tamAresta/2,  tamAresta/2);
+    glVertex3f( tamAresta/2,  tamAresta/2,  tamAresta/2);
+    glVertex3f(-tamAresta/2,  tamAresta/2,  tamAresta/2);
+    // Back Face
+    glNormal3f(0,0,-1);
+    glVertex3f(-tamAresta/2, -tamAresta/2, -tamAresta/2);
+    glVertex3f(-tamAresta/2,  tamAresta/2, -tamAresta/2);
+    glVertex3f( tamAresta/2,  tamAresta/2, -tamAresta/2);
+    glVertex3f( tamAresta/2, -tamAresta/2, -tamAresta/2);
+    // Top Face
+    glNormal3f(0,1,0);
+    glVertex3f(-tamAresta/2,  tamAresta/2, -tamAresta/2);
+    glVertex3f(-tamAresta/2,  tamAresta/2,  tamAresta/2);
+    glVertex3f( tamAresta/2,  tamAresta/2,  tamAresta/2);
+    glVertex3f( tamAresta/2,  tamAresta/2, -tamAresta/2);
+    // Bottom Face
+    glNormal3f(0,-1,0);
+    glVertex3f(-tamAresta/2, -tamAresta/2, -tamAresta/2);
+    glVertex3f( tamAresta/2, -tamAresta/2, -tamAresta/2);
+    glVertex3f( tamAresta/2, -tamAresta/2,  tamAresta/2);
+    glVertex3f(-tamAresta/2, -tamAresta/2,  tamAresta/2);
+    // Right face
+    glNormal3f(1,0,0);
+    glVertex3f( tamAresta/2, -tamAresta/2, -tamAresta/2);
+    glVertex3f( tamAresta/2,  tamAresta/2, -tamAresta/2);
+    glVertex3f( tamAresta/2,  tamAresta/2,  tamAresta/2);
+    glVertex3f( tamAresta/2, -tamAresta/2,  tamAresta/2);
+    // Left Face
+    glNormal3f(-1,0,0);
+    glVertex3f(-tamAresta/2, -tamAresta/2, -tamAresta/2);
+    glVertex3f(-tamAresta/2, -tamAresta/2,  tamAresta/2);
+    glVertex3f(-tamAresta/2,  tamAresta/2,  tamAresta/2);
+    glVertex3f(-tamAresta/2,  tamAresta/2, -tamAresta/2);
+    glEnd();
+
 }
-// ****************************************************************
-// nao sei pra que serve
-// ****************************************************************
-//void RotacionaAoRedorDeUmPonto(float alfa, Ponto P)
-//{
-//    glTranslatef(P.x, P.y, P.z);
-//    glRotatef(alfa, 0,0,1);
-//    glTranslatef(-P.x, -P.y, -P.z);
-//}
-// **************************************************************
+
+// **********************************************************************
+// void DesenhaLadrilho(int corBorda, int corDentro)
+// Desenha uma c�lula do piso.
+// Eh possivel definir a cor da borda e do interior do piso
+// O ladrilho tem largula 1, centro no (0,0,0) e est� sobre o plano XZ
+// **********************************************************************
+void DesenhaLadrilho(int corBorda, int corDentro)
+{
+    defineCor(corDentro);// desenha QUAD preenchido
+    glBegin ( GL_QUADS );
+        glNormal3f(0,1,0);
+        glVertex3f(-0.5f,  0.0f, -0.5f);
+        glVertex3f(-0.5f,  0.0f,  0.5f);
+        glVertex3f( 0.5f,  0.0f,  0.5f);
+        glVertex3f( 0.5f,  0.0f, -0.5f);
+    glEnd();
+
+    defineCor(corBorda);
+    glBegin ( GL_LINE_STRIP );
+        glNormal3f(0,1,0);
+        glVertex3f(-0.5f,  0.0f, -0.5f);
+        glVertex3f(-0.5f,  0.0f,  0.5f);
+        glVertex3f( 0.5f,  0.0f,  0.5f);
+        glVertex3f( 0.5f,  0.0f, -0.5f);
+    glEnd();
+}
+
+// **********************************************************************
 //
-// **************************************************************
-void DesenhaEixos()
-{
-    Ponto Meio;
-    Meio.x = (Max.x+Min.x)/2;
-    Meio.y = (Max.y+Min.y)/2;
-    Meio.z = (Max.z+Min.z)/2;
-
-    glBegin(GL_LINES);
-    //  eixo horizontal
-        glVertex2f(Min.x,Meio.y);
-        glVertex2f(Max.x,Meio.y);
-    //  eixo vertical
-        glVertex2f(Meio.x,Min.y);
-        glVertex2f(Meio.x,Max.y);
+//
+// **********************************************************************
+void DesenhaPredio(int altura, int cor){
+    defineCor(cor);
+    glBegin ( GL_QUADS );
+        // Front Face
+        glNormal3f(0,0,1);
+        glVertex3f(-0.3, 0,  0.3);
+        glVertex3f( 0.3, 0,  0.3);
+        glVertex3f( 0.3,  altura,  0.3);
+        glVertex3f(-0.3,  altura,  0.3);
+        // Back Face
+        glNormal3f(0,0,-1);
+        glVertex3f(-0.3, 0, -0.3);
+        glVertex3f(-0.3,  altura, -0.3);
+        glVertex3f( 0.3,  altura, -0.3);
+        glVertex3f( 0.3, 0, -0.3);
+        // Top Face
+        glNormal3f(0,1,0);
+        glVertex3f(-0.3,  altura, -0.3);
+        glVertex3f(-0.3,  altura,  0.3);
+        glVertex3f( 0.3,  altura,  0.3);
+        glVertex3f( 0.3,  altura, -0.3);
+        // Bottom Face
+        glNormal3f(0,-1,0);
+        glVertex3f(-0.3, 0, -0.3);
+        glVertex3f( 0.3, 0, -0.3);
+        glVertex3f( 0.3, 0,  0.3);
+        glVertex3f(-0.3, 0,  0.3);
+        // Right face
+        glNormal3f(1,0,0);
+        glVertex3f( 0.3, 0, -0.3);
+        glVertex3f( 0.3,  altura, -0.3);
+        glVertex3f( 0.3,  altura,  0.3);
+        glVertex3f( 0.3, 0,  0.3);
+        // Left Face
+        glNormal3f(-1,0,0);
+        glVertex3f(-0.3, 0, -0.3);
+        glVertex3f(-0.3, 0,  0.3);
+        glVertex3f(-0.3,  altura,  0.3);
+        glVertex3f(-0.3,  altura, -0.3);
     glEnd();
 }
 
-void desenhaDisparador(int num){
-    int lin, col;
-    disparador.obtemLimites(lin, col);
+void DesenhaPiso()
+{
+    srand(100);
     glPushMatrix();
-        glTranslatef(-(col/2), -(lin/2), 0);
-        disparador.desenhaVerticesColoridas();
-    glPopMatrix();
-}
+    glTranslated(CantoEsquerdo.x/2, CantoEsquerdo.y, CantoEsquerdo.z/2);
 
-void desenhaTiro(int num){
-    glPushMatrix();
-        glLineWidth(1);
-        if(num == 0)
-            defineCor(Yellow);
-        else
-            defineCor(Red);
-        glTranslatef(-0.05, 0, 0);
-        tiro.pintaPoligono();
-    glPopMatrix();
-}
-
-void desenhaMonstro(int num){
-    int lin, col;
-    monstro[num%MODELOS_MONSTROS].obtemLimites(lin, col);
-    glPushMatrix();
-        glTranslatef(-(col/2), -(lin/2), 0);
-        monstro[num%MODELOS_MONSTROS].desenhaVerticesColoridas();
-    glPopMatrix();
-}
-
-void desenhaVidas(){
-    float xTopo = Min.x, yTopo = Max.y;
-    //constexpr float deslocX = (3* TAM_MAPA/100), deslocY = (12.2 * TAM_MAPA/100);
-    float deslocX = (3* jogador.escala.x), deslocY = (35 * jogador.escala.y);
-
-    for(int i = 0; i < jogador.vidas; i++){
+    int altura = 0;
+    for(int z=0; z<TABULEIRO_Z;z++) {
         glPushMatrix();
-            glPointSize(3);
-            glTranslatef(xTopo+deslocX+(2*i*jogador.raio), yTopo-deslocY, 0);
-            glScalef(jogador.escala.x, jogador.escala.y, jogador.escala.z);
-            disparador.desenhaVerticesColoridas();
-            glPointSize(1);
+        for(int x=0; x<TABULEIRO_X;x++) {
+            bool predio = false;
+            int ladrilho = tabuleiro.getLadrilho(z, x);
+
+            if( ladrilho == -1) {
+                ladrilho = Gray;
+            }
+            else if( ladrilho == -2 || ladrilho > 0){
+                    altura = ladrilho;
+                    predio = ladrilho > 0 ? true : false;
+                    ladrilho = Red;
+                }
+
+            DesenhaLadrilho(White, ladrilho);
+            if(predio) DesenhaPredio(altura, rand()%50);
+            glTranslated(0, 0, 1);
+        }
         glPopMatrix();
+        glTranslated(1, 0, 0);
     }
-
-}
-
-void desenhaDerrota(){
-    glPushMatrix();
-        glPointSize(8);
-        glScalef(2, 2, 2);
-        glTranslatef(-18, 0, 0);
-        derrota.desenhaVerticesColoridas();
-        glPointSize(1);
     glPopMatrix();
 }
-
-void desenhaVitoria(){
-    glPushMatrix();
-        glPointSize(8);
-        glScalef(2, 2, 2);
-        glTranslatef(-18, 0, 0);
-        vitoria.desenhaVerticesColoridas();
-        glPointSize(1);
-    glPopMatrix();
-}
-
-// ****************************************************************
-// Esta fun��o deve instanciar todos os personagens do cen�rio
-// ****************************************************************
-
-void CriaInstancias()
+// **********************************************************************
+//  void DefineLuz(void)
+// **********************************************************************
+void DefineLuz(void)
 {
+  // Define cores para um objeto dourado
+  GLfloat LuzAmbiente[]   = {0.4, 0.4, 0.4 } ;
+  GLfloat LuzDifusa[]   = {0.7, 0.7, 0.7};
+  GLfloat LuzEspecular[] = {0.9f, 0.9f, 0.9 };
+  GLfloat PosicaoLuz0[]  = {0.0f, 3.0f, 5.0f };  // Posi��o da Luz
+  GLfloat Especularidade[] = {1.0f, 1.0f, 1.0f};
 
-    int lin, col;
-    disparador.obtemLimites(lin, col);
-    jogador.posicao = Ponto(0,0) ;
-    jogador.rotacao = 0;
-    jogador.modelo = desenhaDisparador;
+   // ****************  Fonte de Luz 0
 
-    //jogador.escala = Ponto(escala/20, escala/20, escala/20);
-    jogador.escala = Ponto(TAM_MAPA/(100.0 * (lin/10)), TAM_MAPA/(100.0 * (lin/10)), TAM_MAPA/100.0);
+ glEnable ( GL_COLOR_MATERIAL );
 
-    if( lin > col ) 
-        jogador.raio = lin/2 * jogador.escala.x;
-        //jogador.raio = (max.x/5) * jogador.escala.x;//TAM_MAPA/100; 
-    else
-        jogador.raio = col/2 * jogador.escala.x;
-        //jogador.raio = (max.y/5) * jogador.escala.x;//TAM_MAPA/100;  
+   // Habilita o uso de ilumina��o
+  glEnable(GL_LIGHTING);
 
-    jogador.vidas = NVIDAS;
+  // Ativa o uso da luz ambiente
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, LuzAmbiente);
+  // Define os parametros da luz n�mero Zero
+  glLightfv(GL_LIGHT0, GL_AMBIENT, LuzAmbiente);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, LuzDifusa  );
+  glLightfv(GL_LIGHT0, GL_SPECULAR, LuzEspecular  );
+  glLightfv(GL_LIGHT0, GL_POSITION, PosicaoLuz0 );
+  glEnable(GL_LIGHT0);
 
-    for(int i = 0; i < NMONSTROS; i++ ){
-        Universo[i].rotacao = 0;
-        Universo[i].posicao = curvas[i][0];
-//        Universo[i].escala = Ponto( escala/10, escala/10, escala/10);
-        Universo[i].escala = Ponto(TAM_MAPA/100.0, TAM_MAPA/100.0, TAM_MAPA/100.0);
+  // Ativa o "Color Tracking"
+  glEnable(GL_COLOR_MATERIAL);
 
-        Universo[i].modelo = desenhaMonstro;
+  // Define a reflectancia do material
+  glMaterialfv(GL_FRONT,GL_SPECULAR, Especularidade);
 
-        int min, max;
-        monstro[i%MODELOS_MONSTROS].obtemLimites(lin, col);
-        if( lin > col ) 
-            Universo[i].raio = (1.5+lin/2) * Universo[i].escala.x ;//TAM_MAPA/100; 
-        else
-            Universo[i].raio = (1.5+col/2) * Universo[i].escala.y ;//TAM_MAPA/100; 
-
-    }
+  // Define a concentra��oo do brilho.
+  // Quanto maior o valor do Segundo parametro, mais
+  // concentrado ser� o brilho. (Valores v�lidos: de 0 a 128)
+  glMateriali(GL_FRONT,GL_SHININESS,51);
 
 }
+// **********************************************************************
 
-// ****************************************************************
-
-void atirar(){
-    if(atirados == NTIROS+1) return;
-
-    jogador.tiros.push_back(Instancia());
-    Instancia &novoTiro = jogador.tiros.back();
-    novoTiro.modelo = desenhaTiro;
-    novoTiro.escala = Ponto(escala/2, escala/2, escala/2);
-
-    novoTiro.rotacao = jogador.rotacao;
-    float alfa = (novoTiro.rotacao * M_PI)/180.0f;
-    float xr = cos(alfa) * 0 + (-sin(alfa) * 2);
-    float yr = sin(alfa) * 0 + cos(alfa) * 2;
-    novoTiro.dir = Ponto(xr, yr) * TAM_MAPA/100.0;
-
-    novoTiro.posicao = novoTiro.dir*3 + jogador.posicao; 
-
-    atirados++;
-}
-
-void atirarMonstro(Instancia &atirador){
-    if(atirador.delay > 0 ) {
-        atirador.delay--;
-        return;
-    }
-    atirador.tiros.push_back(Instancia());
-    Instancia &novoTiro = atirador.tiros.back();
-    novoTiro.modelo = desenhaTiro;
-    novoTiro.escala = Ponto(escala/2, escala/2, escala/2);
-
-    novoTiro.rotacao = atirador.rotacao;
-
-    float alfa = (novoTiro.rotacao * M_PI)/180.0f;
-    float xr = cos(alfa) * 0 + (-sin(alfa) * 2);
-    float yr = sin(alfa) * 0 + cos(alfa) * 2;
-    novoTiro.dir = Ponto(xr, yr) * TAM_MAPA/100.0;
-
-    novoTiro.posicao = novoTiro.dir*3 + atirador.posicao; 
-    atirador.delay = DELAY_TIROS_INIMIGOS;
-}
-
-
-// ****************************************************************
-void animaMonstros(){
-
-    Ponto pontosUteis[2]{};
-    pontosUteis[0] = jogador.posicao;
-
-    for(int i=0; i<NMONSTROS;i++)
-    {
-        if( Universo[i].vidas <= 0 ) continue;
-        pontosUteis[1] = pontoAleatorio(Min, Max);
-
-        defineCor(MandarinOrange);
-        andarNaBezier(Universo[i], pontosUteis, curvas[i], TempoTotal);
-        Universo[i].desenha(i);
-
-        if(debug){
-            defineCor(NavyBlue);
-            TracaBezier3Pontos(curvas[i]);
-            defineCor(Pink);
-            TracaPontosDeControle(curvas[i]);
-        }
-
-        if( rand() % RAND_TIROS_INIMIGOS == 0) atirarMonstro(Universo[i]);
-
-    }
-}
-
-void DesenhaLinha(Ponto P1, Ponto P2){
-    glBegin(GL_LINES);
-        glVertex3f(P1.x,P1.y,P1.z);
-        glVertex3f(P2.x,P2.y,P2.z);
-    glEnd();
-}
-
-void animaJogador(){
-    Ponto verificaParedes = jogador.posicao + jogador.dir;
-    if( !(verificaParedes.x <= Min.x+(TAM_MAPA/10) || verificaParedes.x >= Max.x-(TAM_MAPA/10)) ){
-        if( !(verificaParedes.y <= Min.y+ (TAM_MAPA/10)|| verificaParedes.y >= Max.y-(TAM_MAPA/10)) ){
-            jogador.posicao = verificaParedes;
-        }
-    }
-    jogador.dir = jogador.dir * 0.95;
-//    if(abs(jogador.dir.x) * 10 < 1) jogador.dir.x = 0;
-//    if(abs(jogador.dir.y) * 10 < 1) jogador.dir.y = 0;
-    jogador.desenha(0);
-}
-
-void animaTiros(){
-    int idx = 0;
-    for(Instancia &it: jogador.tiros){
-
-        if(VELOC_TIROS < 5 && VELOC_TIROS > 0)
-            it.posicao = it.posicao + it.dir*VELOC_TIROS;
-        else
-            it.posicao = it.posicao + it.dir*5;
-
-        if(it.vidas > 0)
-            it.desenha(0);
-        if( it.posicao.x > Max.x || it.posicao.x < Min.x || it.posicao.y > Max.x || it.posicao.y < Min.y ){
-            atirados--;
-            jogador.tiros.erase(jogador.tiros.begin()+idx);
-            idx--;
-        }
-        idx++;
-    }
-    for(int i = 0; i < NMONSTROS; i++){
-        idx = 0;
-        for(Instancia &it: Universo[i].tiros){
-            if(VELOC_TIROS_INIMIGOS < 5 && VELOC_TIROS_INIMIGOS > 0)
-                it.posicao = it.posicao + it.dir*VELOC_TIROS_INIMIGOS;
-            else
-                it.posicao = it.posicao + it.dir*5;
-            if(it.vidas > 0)
-                it.desenha(1);
-            if( it.posicao.x > Max.x || it.posicao.x < Min.x || it.posicao.y > Max.x || it.posicao.y < Min.y ){
-                Universo[i].tiros.erase(Universo[i].tiros.begin()+idx);
-                idx--;
-            }
-        }
-        idx++;
-    }
-}
-
-// funcao copiada da internet (usada apenas para debugar visualizando o raio)
-void DrawCircle(Ponto C, float r, int num_segments) {
-    glBegin(GL_LINE_LOOP);
-    for (int ii = 0; ii < num_segments; ii++)   {
-        float theta = 2.0f * 3.1415926f * float(ii) / float(num_segments);//get the current angle 
-        float x = r * cosf(theta);//calculate the x component 
-        float y = r * sinf(theta);//calculate the y component 
-        glVertex2f(x + C.x, y + C.y);//output vertex 
-    }
-    glEnd();
-}
-
-// ****************************************************************
-
-void testaColisao(){
-    for(int i = 0; i < NMONSTROS; i++){
-        // colisão tiros do monstro contra usuário
-        for(Instancia &tiro: Universo[i].tiros){
-            if(tiro.vidas <= 0) continue;
-            float dist = sqrt(pow(tiro.posicao.x - jogador.posicao.x, 2) + pow(tiro.posicao.y - jogador.posicao.y, 2)); 
-            if(dist < jogador.raio){
-                if(!imune)
-                    jogador.vidas--;
-                tiro.vidas = 0;
-            }
-        }
-
-        if( Universo[i].vidas <= 0 ) continue;
-
-        if(debug){
-            glLineWidth(1);
-            glColor3f(1,1,1); // R, G, B  [0..1]
-            DrawCircle(Universo[i].posicao, Universo[i].raio, 30);
-            DrawCircle(jogador.posicao, jogador.raio, 30);
-        }
-
-
-        float dist = sqrt(pow(jogador.posicao.x - Universo[i].posicao.x, 2) + pow(jogador.posicao.y - Universo[i].posicao.y, 2)); 
-        if( dist < jogador.raio + Universo[i].raio ){
-
-            if(!imune){
-                jogador.vidas--;
-                Universo[i].vidas--;
-                monstrosVivos--;
-            }
-        }
-
-        // colisão tiros do jogador contra monstros
-        for(Instancia &tiro: jogador.tiros){
-            if(tiro.vidas <= 0) continue;
-            float dist = sqrt(pow(tiro.posicao.x - Universo[i].posicao.x, 2) + pow(tiro.posicao.y - Universo[i].posicao.y, 2)); 
-            if(dist < Universo[i].raio){
-                Universo[i].vidas--;
-                tiro.vidas = 0;
-                monstrosVivos--;
-                tiro.posicao.x = TAM_MAPA+TAM_MAPA;
-            }
-        }
-
-    }
-}
+// **********************************************************************
+//  void PosicUser()
+// **********************************************************************
 void PosicUser()
 {
 
@@ -518,247 +324,153 @@ void PosicUser()
     glLoadIdentity();
     // Define o volume de visualiza��o sempre a partir da posicao do
     // observador
-    //glOrtho(-10, 10, -10, 10, 0, 7); // Projecao paralela Orthografica
-    gluPerspective(90, 1,0.01,500); // Projecao perspectiva
+    if (ModoDeProjecao == 0)
+        glOrtho(-10, 10, -10, 10, 0, 7); // Projecao paralela Orthografica
+    else gluPerspective(90,AspectRatio,0.01,200); // Projecao perspectiva
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0, -50, 100,   // Posi��o do Observador
+    gluLookAt(obsX, obsY, obsZ,   // Posi��o do Observador
               0,0,0,     // Posi��o do Alvo
               0.0f,1.0f,0.0f);
 
 }
-// ****************************************************************
+// **********************************************************************
+//  void reshape( int w, int h )
+//		trata o redimensionamento da janela OpenGL
+//
+// **********************************************************************
+void reshape( int w, int h )
+{
+
+	// Evita divis�o por zero, no caso de uam janela com largura 0.
+	if(h == 0) h = 1;
+    // Ajusta a rela��o entre largura e altura para evitar distor��o na imagem.
+    // Veja fun��o "PosicUser".
+	AspectRatio = 1.0f * w / h;
+	// Reset the coordinate system before modifying
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	// Seta a viewport para ocupar toda a janela
+    glViewport(0, 0, w, h);
+    //cout << "Largura" << w << endl;
+
+	PosicUser();
+
+}
+
+// **********************************************************************
 //  void display( void )
-// ****************************************************************
+// **********************************************************************
+float PosicaoZ = -30;
 void display( void )
 {
 
-	// Limpa a tela coma cor de fundo
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-    // Define os limites l�gicos da �rea OpenGL dentro da Janela
+	DefineLuz();
+
+	PosicUser();
+
 	glMatrixMode(GL_MODELVIEW);
 
-    glLoadIdentity();
-	// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	// Coloque aqui as chamadas das rotinas que desenham os objetos
-	// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    if(pause){
-        return;
-    }
+    DesenhaPiso();
 
-    if(debug){
-        glLineWidth(1);
-        glColor3f(1,1,1); // R, G, B  [0..1]
-        DesenhaEixos();
-    }
-    
-    PosicUser();
-
-    glPointSize(1);
-    animaJogador();
-
-    animaTiros();
-
-    animaMonstros();
-
-    testaColisao();
-    if(jogador.vidas <= 0){
-        pause = true;
-        desenhaDerrota();
-    }
-
-    if(monstrosVivos <= 0 && NMONSTROS != 0 ){
-        monstrosVivos = 0;
-        for(int i = 0; i < NMONSTROS; i++){
-            if(Universo[i].vidas > 0) monstrosVivos++;
-        }
-        if(monstrosVivos == 0){
-            pause = true;
-            desenhaVitoria();
-        }
-    }
-
-    desenhaVidas();
-
-    double dt;
-    dt = T.getDeltaT();
-    
-    
-    // Como instanciar o mapa de forma que ocupe a tela toda?
-    //Mapa.desenhaPoligono();
-    
 	glutSwapBuffers();
 }
-// ****************************************************************
-// ContaTempo(double tempo)
-//      conta um certo n�mero de segundos e informa quanto frames
-// se passaram neste per�odo.
-// ****************************************************************
-void ContaTempo(double tempo)
-{
-    Temporizador T;
 
-    unsigned long cont = 0;
-    cout << "Inicio contagem de " << tempo << "segundos ..." << flush;
-    while(true)
-    {
-        tempo -= T.getDeltaT();
-        cont++;
-        if (tempo <= 0.0)
-        {
-            cout << "fim! - Passaram-se " << cont << " frames." << endl;
-            break;
-        }
-    }
-}
-// ****************************************************************
+
+// **********************************************************************
 //  void keyboard ( unsigned char key, int x, int y )
-// ****************************************************************
+//
+//
+// **********************************************************************
 void keyboard ( unsigned char key, int x, int y )
 {
-
-    switch ( key )
-    {
+	switch ( key )	{
         case 27:        // Termina o programa qdo
-            exit ( 0 );   // a tecla ESC for pressionada
-            break;
-        case 't':
-            ContaTempo(3);
-            break;
-        case ' ':
-            atirar();
-        break;
+          exit ( 0 );   // a tecla ESC for pressionada
+          break;
         case 'p':
-            pause = !pause;
-            if(pause)
-                printf("PAUSADO\n");
-            else printf("DESPAUSADO\n");
+                ModoDeProjecao = !ModoDeProjecao;
+                glutPostRedisplay();
+                break;
+        case 'e':
+                ModoDeExibicao = !ModoDeExibicao;
+                init();
+                glutPostRedisplay();
+                break;
+        case '7':
+            obsX+=1;
             break;
-        case 'r':
-            jogador.posicao = Ponto(0,0);
-            jogador.rotacao = 0;
-            jogador.dir = Ponto(0,0,0);
-            atirados = 0;
-            jogador.vidas = NVIDAS;
-            pause = false;
+        case '4':
+            obsX-=1;
             break;
-        case 'm':
-            monstrosVivos = NMONSTROS;
-            for(int i = 0; i < NMONSTROS; i++){
-                Universo[i].vidas = 1;
-            }
+        case '8':
+            obsY+=1;
             break;
-        case 'd':
-            debug = !debug;
+        case '5':
+            obsY-=1;
             break;
-        case 'b':
-            imune = !imune;
+        case '9':
+            obsZ+=1;
+            break;
+        case '6':
+            obsZ-=1;
             break;
         default:
-			break;
-	}
-}
-// ****************************************************************
-//  void arrow_keys ( int a_keys, int x, int y )
-// ****************************************************************
+            break;
+    }
 
+    printf("\033[2J");
+    printf("\033[H\033[H");
+    printf("%d %d %d\n", obsX, obsY, obsZ);
+
+
+}
+
+// **********************************************************************
+//  void arrow_keys ( int a_keys, int x, int y )
+//
+//
+// **********************************************************************
 void arrow_keys ( int a_keys, int x, int y )
 {
 	switch ( a_keys )
 	{
-        case GLUT_KEY_LEFT:
-            if(pause) return;
-            jogador.rotacao += 10;
-            if(jogador.rotacao >= 360){
-               jogador.rotacao = 0; 
-            }
-
-//            printf("rotac %f\n", jogador.rotacao);
-            break;
-
-        case GLUT_KEY_RIGHT:
-            if(pause) return;
-            jogador.rotacao -= 10;
-            if(jogador.rotacao <= 0){
-               jogador.rotacao = 360; 
-            }
-//            printf("rotac %f\n", jogador.rotacao);
-            break;
-
-		case GLUT_KEY_UP:     
-            if(pause) return;
-//            inicio = jogador.posicao; esses 2 faz o traçado grande
-//            fim = jogador.posicao;
-            andaFrente(jogador, TAM_MAPA);
-			break;
-
-	    case GLUT_KEY_DOWN:     
-			break;
 		default:
 			break;
 	}
 }
 
-// ****************************************************************
+// **********************************************************************
 //  void main ( int argc, char** argv )
-// ****************************************************************
-int  main ( int argc, char** argv )
+//
+//
+// **********************************************************************
+int main ( int argc, char** argv )
 {
-    cout << "Programa OpenGL" << endl;
+	glutInit            ( &argc, argv );
+	glutInitDisplayMode (GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGB );
+	glutInitWindowPosition (0,0);
+	glutInitWindowSize  ( WIDTH, HEIGHT );
+	glutCreateWindow    ( "Computacao Grafica - Exemplo Basico 3D" );
 
-    glutInit            ( &argc, argv );
-    glutInitDisplayMode (GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGB );
-    glutInitWindowPosition (0,0);
+	init ();
+    //system("pwd");
 
-    // Define o tamanho inicial da janela grafica do programa
-    glutInitWindowSize  ( TAM_JANELA, TAM_JANELA);
+	glutDisplayFunc ( display );
+	glutReshapeFunc ( reshape );
+	glutKeyboardFunc ( keyboard );
+	glutSpecialFunc ( arrow_keys );
+	glutIdleFunc ( animate );
 
-    // Cria a janela na tela, definindo o nome da
-    // que aparecera na barra de t�tulo da janela.
-    glutCreateWindow    ( "Transformacoes Geometricas em OpenGL" );
-
-    // executa algumas inicializa��es
-    init ();
-
-    // Define que o tratador de evento para
-    // o redesenho da tela. A funcao "display"
-    // ser� chamada automaticamente quando
-    // for necess�rio redesenhar a janela
-    glutDisplayFunc ( display );
-
-    // Define que o tratador de evento para
-    // o invalida��o da tela. A funcao "display"
-    // ser� chamada automaticamente sempre que a
-    // m�quina estiver ociosa (idle)
-    glutIdleFunc(animate);
-
-    // Define que o tratador de evento para
-    // o redimensionamento da janela. A funcao "reshape"
-    // ser� chamada automaticamente quando
-    // o usu�rio alterar o tamanho da janela
-    glutReshapeFunc ( reshape );
-
-    // Define que o tratador de evento para
-    // as teclas. A funcao "keyboard"
-    // ser� chamada automaticamente sempre
-    // o usu�rio pressionar uma tecla comum
-    glutKeyboardFunc ( keyboard );
-
-    // Define que o tratador de evento para
-    // as teclas especiais(F1, F2,... ALT-A,
-    // ALT-B, Teclas de Seta, ...).
-    // A funcao "arrow_keys" ser� chamada
-    // automaticamente sempre o usu�rio
-    // pressionar uma tecla especial
-    glutSpecialFunc ( arrow_keys );
-
-    // inicia o tratamento dos eventos
-    glutMainLoop ( );
-
-    return 0;
+	glutMainLoop ( );
+	return 0;
 }
+
+
+

@@ -44,22 +44,25 @@ void DesenhaRetangulo()
     glEnd();
 }
 
+int Modelo::getLadrilho(int x, int z){
+    return matriz[x][z];
+}
+
 void Modelo::desenhaVerticesColoridas()
 {
     glPushMatrix();
     for(int y = 0; y < lin; y++){
         for(int x = 0; x < col; x++){
-            int numCor = matriz[x][y][0];
+            int numCor = matriz[x][y];
             Cor a = ListaCores[numCor];
             glColor3f(a.r/255.0, a.g/255.0, a.b/255.0);
             DesenhaRetangulo();
             glTranslatef(1, 0, 0);
         }
-        glTranslatef(-col, 1, 0);
+        glTranslatef(-col, 0, 1);
     }
     glPopMatrix();
 }
-
 
 void Modelo::LeObjeto(const char *nome){
     ifstream input;            // ofstream arq;
@@ -96,11 +99,15 @@ void Modelo::LeObjeto(const char *nome){
 
     input >> lin >> col;
 //    cout << "lin: " << lin << " col: " << col << endl;
-    int tmp;
+    char tmp;
     for(int y = lin-1; y >= 0; y--){
         for(int x = 0; x < col; x++){
             input >> tmp;
-            matriz[x][y][0] = tmp-1;
+            if(tmp == '.') tmp = -1;
+            else if(tmp == 'x') tmp = -2;
+                else tmp -= '0';
+            matriz[x][y] = tmp;
+
         }
     }
 

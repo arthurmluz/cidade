@@ -23,7 +23,7 @@ using namespace std;
 class Modelo
 {
     // lin, col, cores
-    int matriz[200][200][1];
+    int matriz[200][200];
     int lin, col, cores;
     Cor ListaCores[20];
 public:
@@ -31,6 +31,7 @@ public:
     int getColunas();
     int getLinhas();
     int getCores();
+    int getLadrilho(int x, int y);
     void desenhaVerticesColoridas();
     void imprime();
     void atualizaLimites();
