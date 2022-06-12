@@ -3,7 +3,7 @@
 
 #include "../app/Instancia.h"
 
-void andaFrente(Instancia &jogador, int tamMapa);
+void andaFrente(Instancia &jogador);
 
 Ponto andaFrenteCamera(float rotacao);
 

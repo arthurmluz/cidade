@@ -37,10 +37,10 @@ void Modelo::obtemLimites(int &linhas, int &colunas){
 void DesenhaRetangulo()
 {
     glBegin(GL_QUADS);
-        glVertex2d(-0.5, -0.5);
-        glVertex2d(-0.5, +0.5);
-        glVertex2d(+0.5, +0.5);
-        glVertex2d(+0.5, -0.5);
+        glVertex3d(-0.5, 0, -0.5);
+        glVertex3d(-0.5, 0, +0.5);
+        glVertex3d(+0.5, 0, +0.5);
+        glVertex3d(+0.5, 0,-0.5);
     glEnd();
 }
 
@@ -55,6 +55,10 @@ void Modelo::desenhaVerticesColoridas()
         for(int x = 0; x < col; x++){
             int numCor = matriz[x][y];
             Cor a = ListaCores[numCor];
+            if(numCor == 0) {
+                glTranslatef(1, 0, 0);
+                continue;
+            }
             glColor3f(a.r/255.0, a.g/255.0, a.b/255.0);
             DesenhaRetangulo();
             glTranslatef(1, 0, 0);
@@ -105,6 +109,53 @@ void Modelo::LeObjeto(const char *nome){
         for(int x = 0; x < col; x++){
             input >> tmp;
             matriz[x][y] = tmp;
+        }
+    }
+
+    cout << "Modelo lido com sucesso!" << endl;
+
+}
+
+void Modelo::LeObjetoNave(const char *nome){
+    ifstream input;            // ofstream arq;
+    input.open(nome, ios::in); //arq.open(nome, ios::out);
+    if (!input)
+    {
+        cout << "Erro ao abrir " << nome << ". " << endl;
+        exit(0);
+    }
+    cout << "Lendo arquivo " << nome << "...";
+    string S;
+    //int nLinha = 0;
+
+    std::string a;
+    getline(input, a); // #CORES
+
+    unsigned int qtdCores;
+    input >> qtdCores;
+
+    Cor cores[qtdCores];
+    for(int i = 0; i < qtdCores; i++){
+        int tmp, r, g, b;
+
+        // le as cores
+        input >> tmp >> cores[i].r >> cores[i].g >> cores[i].b >> a;
+        //cout << "R: " << cores[i].r << " G: " << cores[i].g << " B: " << cores[i].b << endl;
+    }
+    for(int i = 0; i < qtdCores; i++){
+        ListaCores[i] = cores[i];
+    }
+
+    // linha vazia
+    input >> a;
+
+    input >> lin >> col;
+    //cout << "lin: " << lin << " col: " << col << endl;
+    int tmp;
+    for(int y = lin-1; y >= 0; y--){
+        for(int x = 0; x < col; x++){
+            input >> tmp;
+            matriz[x][y] = tmp-1;
         }
     }
 

@@ -65,7 +65,10 @@ int ModoDeExibicao = 1;
 // posicao inicial do observador
 int obsX = 0, obsY = 15, obsZ = 30;
 
-Modelo tabuleiro; 
+Modelo tabuleiro, disparador; 
+Instancia jogador;
+
+int camera = 0;
 
 double nFrames=0;
 double TempoTotal=0;
@@ -85,7 +88,8 @@ string nomeTexturas[] = {
     "UDR.png",
     "UL.png",
     "ULR.png",
-    "UR.png"};
+    "UR.png",
+    };
 
 int idTexturaRua[LAST_IMG];  // vetor com os identificadores das texturas
 
@@ -104,6 +108,21 @@ void initTexture()
 //  void init(void)
 //        Inicializa os parametros globais de OpenGL
 // **********************************************************************
+void desenhaDisparador(int num);
+void criaInstancias(){
+    int lin, col;
+    disparador.obtemLimites(lin, col);
+    jogador.posicao = Ponto(0, -0.5, 0);
+    jogador.rotacao = 0;
+    jogador.modelo = desenhaDisparador;
+    jogador.escala = Ponto(0.025, 0, 0.025);
+    if( lin > col ) 
+        jogador.raio = lin/2 * jogador.escala.x;
+        //jogador.raio = (max.x/5) * jogador.escala.x;//TAM_MAPA/100; 
+    else
+        jogador.raio = col/2 * jogador.escala.x;
+        //jogador.raio = (max.y/5) * jogador.escala.x;//TAM_MAPA/100;  
+}
 void init(void)
 {
     glClearColor(0.0f, 0.0f, 0.5, 1.0f); // Fundo de tela preto
@@ -117,11 +136,19 @@ void init(void)
     //glShadeModel(GL_FLAT);
     initTexture();
     
-    tabuleiro.LeObjeto("assets/tabuleiro.txt");
-    TABULEIRO_X = tabuleiro.getLinhas();
-    TABULEIRO_Z = tabuleiro.getColunas();
+    tabuleiro.LeObjeto("assets/tabuleiro_40.txt");
+    //tabuleiro.LeObjeto("assets/teste.txt");
+    TABULEIRO_Z = tabuleiro.getLinhas();
+    TABULEIRO_X = tabuleiro.getColunas();
 
-    obsY = TABULEIRO_Z/2, obsZ = TABULEIRO_Z/2;
+    disparador.LeObjetoNave("assets/nave.txt");
+    criaInstancias();
+    obsX=0;obsY=6;obsZ=-4;
+
+    
+    CantoEsquerdo = {-static_cast<float>(TABULEIRO_X),-1, -static_cast<float>(TABULEIRO_Z)};
+
+    //CantoEsquerdo = {-41,-1, -static_cast<float>(TABULEIRO_Z)};
 
     glColorMaterial ( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
     if (ModoDeExibicao) // Faces Preenchidas??
@@ -157,52 +184,6 @@ void animate()
 
 
 // **********************************************************************
-//  void DesenhaCubo()
-// **********************************************************************
-void DesenhaCubo(float tamAresta)
-{
-    glBegin ( GL_QUADS );
-    // Front Face
-    glNormal3f(0,0,1);
-    glVertex3f(-tamAresta/2, -tamAresta/2,  tamAresta/2);
-    glVertex3f( tamAresta/2, -tamAresta/2,  tamAresta/2);
-    glVertex3f( tamAresta/2,  tamAresta/2,  tamAresta/2);
-    glVertex3f(-tamAresta/2,  tamAresta/2,  tamAresta/2);
-    // Back Face
-    glNormal3f(0,0,-1);
-    glVertex3f(-tamAresta/2, -tamAresta/2, -tamAresta/2);
-    glVertex3f(-tamAresta/2,  tamAresta/2, -tamAresta/2);
-    glVertex3f( tamAresta/2,  tamAresta/2, -tamAresta/2);
-    glVertex3f( tamAresta/2, -tamAresta/2, -tamAresta/2);
-    // Top Face
-    glNormal3f(0,1,0);
-    glVertex3f(-tamAresta/2,  tamAresta/2, -tamAresta/2);
-    glVertex3f(-tamAresta/2,  tamAresta/2,  tamAresta/2);
-    glVertex3f( tamAresta/2,  tamAresta/2,  tamAresta/2);
-    glVertex3f( tamAresta/2,  tamAresta/2, -tamAresta/2);
-    // Bottom Face
-    glNormal3f(0,-1,0);
-    glVertex3f(-tamAresta/2, -tamAresta/2, -tamAresta/2);
-    glVertex3f( tamAresta/2, -tamAresta/2, -tamAresta/2);
-    glVertex3f( tamAresta/2, -tamAresta/2,  tamAresta/2);
-    glVertex3f(-tamAresta/2, -tamAresta/2,  tamAresta/2);
-    // Right face
-    glNormal3f(1,0,0);
-    glVertex3f( tamAresta/2, -tamAresta/2, -tamAresta/2);
-    glVertex3f( tamAresta/2,  tamAresta/2, -tamAresta/2);
-    glVertex3f( tamAresta/2,  tamAresta/2,  tamAresta/2);
-    glVertex3f( tamAresta/2, -tamAresta/2,  tamAresta/2);
-    // Left Face
-    glNormal3f(-1,0,0);
-    glVertex3f(-tamAresta/2, -tamAresta/2, -tamAresta/2);
-    glVertex3f(-tamAresta/2, -tamAresta/2,  tamAresta/2);
-    glVertex3f(-tamAresta/2,  tamAresta/2,  tamAresta/2);
-    glVertex3f(-tamAresta/2,  tamAresta/2, -tamAresta/2);
-    glEnd();
-
-}
-
-// **********************************************************************
 // void DesenhaLadrilho(int corBorda, int corDentro)
 // Desenha uma c�lula do piso.
 // Eh possivel definir a cor da borda e do interior do piso
@@ -213,24 +194,25 @@ void DesenhaLadrilho(int corBorda, int corDentro)
     glEnable(GL_TEXTURE_2D);
     glBindTexture (GL_TEXTURE_2D, idTexturaRua[corDentro]);
 
-    if(corDentro == None){
-        defineCor(Red);
+    if(corDentro == None || corDentro > LAST_IMG){
+        defineCor(MediumForestGreen);
+       glBindTexture (GL_TEXTURE_2D, idTexturaRua[None]);
     }
     else defineCor(Gray);// desenha QUAD preenchido
     glPushMatrix();
         glBegin ( GL_QUADS );
             glNormal3f(0,1,0);
 
-            glTexCoord2f(0.5f, 0.0f);
+            glTexCoord2f(0.0, 0.0f);
             glVertex3f(-0.5f,  0.0f, -0.5f);
 
             glTexCoord2f(1.0f, 0.0f);
             glVertex3f(-0.5f,  0.0f,  0.5f);
 
-            glTexCoord2f(1.0f, 0.5f);
+            glTexCoord2f(1.0f, 1.0f);
             glVertex3f( 0.5f,  0.0f,  0.5f);
 
-            glTexCoord2f(0.5f, 0.5f);
+            glTexCoord2f(0.0, 1.0f);
             glVertex3f( 0.5f,  0.0f, -0.5f);
         glEnd();
     glPopMatrix();
@@ -246,11 +228,22 @@ void DesenhaLadrilho(int corBorda, int corDentro)
 }
 
 // **********************************************************************
+void desenhaDisparador(int num){
+    int lin, col;
+    disparador.obtemLimites(lin, col);
+    glPushMatrix();
+        glTranslatef(-(col/2), 0, -(lin/2));
+        disparador.desenhaVerticesColoridas();
+    glPopMatrix();
+}
+
+// **********************************************************************
 //
 //
 // **********************************************************************
 void DesenhaPredio(int altura, int cor){
     defineCor(cor);
+
     glBegin ( GL_QUADS );
         // Front Face
         glNormal3f(0,0,1);
@@ -293,18 +286,18 @@ void DesenhaPredio(int altura, int cor){
 
 void DesenhaPiso()
 {
-    srand(100);
+    srand(101);
     glPushMatrix();
     glTranslated(CantoEsquerdo.x/2, CantoEsquerdo.y, CantoEsquerdo.z/2);
 
-    int altura = 0;
-    for(int z=0; z<TABULEIRO_Z;z++) {
+    for(int x=0; x<TABULEIRO_X;x++) {
         glPushMatrix();
-        for(int x=0; x<TABULEIRO_X;x++) {
+        for(int z=0; z<TABULEIRO_Z;z++) {
+
             bool predio = false;
-            int ladrilho = tabuleiro.getLadrilho(z, x);
+            int ladrilho = tabuleiro.getLadrilho(x, z);
             DesenhaLadrilho(White, ladrilho);
-            if(predio) DesenhaPredio(altura, rand()%50);
+            if( ladrilho == None && rand()%10 == 0 ) DesenhaPredio(rand()%6+1, rand()%LAST_COLOR);
             glTranslated(0, 0, 1);
         }
         glPopMatrix();
@@ -312,6 +305,21 @@ void DesenhaPiso()
     }
     glPopMatrix();
 }
+
+void animaJogador(){
+    Ponto verificaParedes = jogador.posicao + jogador.dir;
+    if( !(verificaParedes.x < -TABULEIRO_X/2 || verificaParedes.x > TABULEIRO_X/2-1 )){
+        if( !(verificaParedes.z < -TABULEIRO_Z/2 || verificaParedes.z > TABULEIRO_Z/2-1 )){
+            int a = tabuleiro.getLadrilho(verificaParedes.x+TABULEIRO_X, verificaParedes.z+TABULEIRO_Z);
+            printf("a=%d, %f,%f\n", a, verificaParedes.x, verificaParedes.z);
+            jogador.posicao = verificaParedes;
+        }
+        else jogador.dir = Ponto(0,0,0);
+    }
+    else jogador.dir = Ponto(0,0,0);
+    jogador.desenha(0);
+}
+
 // **********************************************************************
 //  void DefineLuz(void)
 // **********************************************************************
@@ -367,16 +375,23 @@ void PosicUser()
     // observador
     if (ModoDeProjecao == 0)
         glOrtho(-10, 10, -10, 10, 0, 7); // Projecao paralela Orthografica
-    else gluPerspective(90,AspectRatio,0.01,200); // Projecao perspectiva
+    else gluPerspective(90,AspectRatio,0.01,100); // Projecao perspectiva
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(obsX, obsY, obsZ,   // Posi��o do Observador
-              0,0,0,     // Posi��o do Alvo
+
+    if (camera == 0){
+        gluLookAt(jogador.posicao.x, jogador.posicao.y+3, jogador.posicao.z-2,   // Posi��o do Observador
+              jogador.posicao.x,jogador.posicao.y,jogador.posicao.z+3,     // Posi��o do Alvo
               0.0f,1.0f,0.0f);
+    }else{
+        gluLookAt(obsX, obsY, obsZ,   // Posi��o do Observador
+              jogador.posicao.x, jogador.posicao.y, jogador.posicao.z,     // Posi��o do Alvo
+              0.0f,1.0f,0.0f);
+    }
 
 }
 // **********************************************************************
@@ -420,6 +435,8 @@ void display( void )
 
     DesenhaPiso();
 
+    animaJogador();
+
 	glutSwapBuffers();
 }
 
@@ -445,6 +462,10 @@ void keyboard ( unsigned char key, int x, int y )
             init();
             glutPostRedisplay();
             break;
+        case 'v':
+            camera= camera >= 3 ? 0 : camera+1;
+            break;
+
         case '7':
             obsX+=1;
             break;
@@ -467,8 +488,6 @@ void keyboard ( unsigned char key, int x, int y )
             break;
     }
 
-    printf("\033[2J");
-    printf("\033[H\033[H");
     printf("%d %d %d\n", obsX, obsY, obsZ);
 
 
@@ -481,10 +500,24 @@ void keyboard ( unsigned char key, int x, int y )
 // **********************************************************************
 void arrow_keys ( int a_keys, int x, int y )
 {
-	switch ( a_keys )
-	{
-		default:
-			break;
+	switch ( a_keys ){
+        case GLUT_KEY_UP:     
+            andaFrente(jogador);
+            break;
+        case GLUT_KEY_LEFT:
+            jogador.rotacao -= 90;
+            if(jogador.rotacao >= 360){
+               jogador.rotacao = 0; 
+            }
+            break;
+        case GLUT_KEY_RIGHT:
+            jogador.rotacao += 90;
+            if(jogador.rotacao <= 0){
+               jogador.rotacao = 360; 
+            }
+            break;
+        default:
+            break;
 	}
 }
 

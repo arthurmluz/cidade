@@ -23,7 +23,7 @@ using namespace std;
 class Modelo
 {
     // lin, col, cores
-    int matriz[200][200];
+    int matriz[1600][1600];
     int lin, col, cores;
     Cor ListaCores[20];
 public:
@@ -37,6 +37,7 @@ public:
     void atualizaLimites();
     void obtemLimites(int &linhas, int &colunas);
     void LeObjeto(const char *nome);
+    void LeObjetoNave(const char *nome);
 
 
 };

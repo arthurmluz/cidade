@@ -55,8 +55,8 @@ void Instancia::desenha(int num)
     //cout << "Desenhou..." << endl;
     // aplica as transformacoes geometricas no modelo
     glPushMatrix();
-    glTranslatef(posicao.x, posicao.y, 0);
-    glRotatef(rotacao, 0, 0, 1);
+    glTranslatef(posicao.x, posicao.y, posicao.z);
+    glRotatef(rotacao, 0, -1, 0);
     glScalef(escala.x, escala.y, escala.z);
     
     Ponto PosicaoDoPersonagem;

@@ -16,7 +16,7 @@ Darwin: $(OBJETOS)
 	g++ $(OBJETOS) -O3 -framework OpenGL -framework Cocoa -framework GLUT -lm -lSOIL -o $(PROG)
 
 Linux: $(OBJETOS)
-	g++ $(OBJETOS) -O3 -lGL -lGLU -lglut -lm -lSOIL -o $(PROG)
+	g++ $(OBJETOS) -O3 -lGL -lGLU -lglut -lm -lSOIL  -o $(PROG)
 
 clean:
 	-@ rm -f $(OBJETOS) $(PROG)
