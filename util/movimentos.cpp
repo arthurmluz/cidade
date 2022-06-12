@@ -1,16 +1,17 @@
 #include "movimentos.h"
 
-void andaFrente(Instancia &jogador){
-//    printf("y = %f\n", jogador.dir.y);
+void andaFrente(Instancia &jogador, float rotacao, Modelo &tabuleiro){
     jogador.dir.y += 1 ;
-    float alfa = (jogador.rotacao * M_PI)/180.0f;
-    //printf("angulo>: %f\n", alfa);
+    float alfa = (rotacao * M_PI)/180.0f;
     float xr = (-sin(alfa) * jogador.dir.y);
     float yr = cos(alfa) * jogador.dir.y;
-//    float xr = jogador.dir.x * cos(alfa) - jogador.dir.y * sin(alfa);
-//    float yr = jogador.dir.x * sin(alfa) - jogador.dir.y * cos(alfa);
     jogador.dir = Ponto(xr, 0,yr);
-//    printf("(%f, %f)\n", jogador.dir.x, jogador.dir.y);
+    int novoX = jogador.posicao.x+jogador.dir.x;
+    int novoZ = jogador.posicao.z+jogador.dir.z;
+    if(!(tabuleiro.getLadrilho(novoX,novoZ) == 5))
+        jogador.dir = jogador.dir * 1;
+    printf("a = %d, %d, %d\n", tabuleiro.getLadrilho(novoX,novoZ), novoX, novoZ);
+
 }
 
 

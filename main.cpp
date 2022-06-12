@@ -136,8 +136,7 @@ void init(void)
     //glShadeModel(GL_FLAT);
     initTexture();
     
-    tabuleiro.LeObjeto("assets/tabuleiro_40.txt");
-    //tabuleiro.LeObjeto("assets/teste.txt");
+    tabuleiro.LeObjeto("assets/tabuleiro_1280.txt");
     TABULEIRO_Z = tabuleiro.getLinhas();
     TABULEIRO_X = tabuleiro.getColunas();
 
@@ -146,9 +145,9 @@ void init(void)
     obsX=0;obsY=6;obsZ=-4;
 
     
-    CantoEsquerdo = {-static_cast<float>(TABULEIRO_X),-1, -static_cast<float>(TABULEIRO_Z)};
+    //CantoEsquerdo = {-static_cast<float>(TABULEIRO_X),-1, -static_cast<float>(TABULEIRO_Z)};
 
-    //CantoEsquerdo = {-41,-1, -static_cast<float>(TABULEIRO_Z)};
+    CantoEsquerdo = {0,-1, 0};
 
     glColorMaterial ( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
     if (ModoDeExibicao) // Faces Preenchidas??
@@ -217,14 +216,14 @@ void DesenhaLadrilho(int corBorda, int corDentro)
         glEnd();
     glPopMatrix();
 
-    defineCor(corBorda);
-    glBegin ( GL_LINE_STRIP );
-        glNormal3f(0,1,0);
-        glVertex3f(-0.5f,  0.0f, -0.5f);
-        glVertex3f(-0.5f,  0.0f,  0.5f);
-        glVertex3f( 0.5f,  0.0f,  0.5f);
-        glVertex3f( 0.5f,  0.0f, -0.5f);
-    glEnd();
+//    defineCor(corBorda);
+//    glBegin ( GL_LINE_STRIP );
+//        glNormal3f(0,1,0);
+//        glVertex3f(-0.5f,  0.0f, -0.5f);
+//        glVertex3f(-0.5f,  0.0f,  0.5f);
+//        glVertex3f( 0.5f,  0.0f,  0.5f);
+//        glVertex3f( 0.5f,  0.0f, -0.5f);
+//    glEnd();
 }
 
 // **********************************************************************
@@ -293,11 +292,20 @@ void DesenhaPiso()
     for(int x=0; x<TABULEIRO_X;x++) {
         glPushMatrix();
         for(int z=0; z<TABULEIRO_Z;z++) {
+            float chancePredio = rand()%10;
+            float altura = rand()%6+1;
+            float cor = rand()%LAST_COLOR;
+            if(x < jogador.posicao.x-200 || x > jogador.posicao.x+200) {
+                continue;
+            }
+            if(z < jogador.posicao.z-200 || z > jogador.posicao.z+200) {
+                continue;
+            }
 
             bool predio = false;
             int ladrilho = tabuleiro.getLadrilho(x, z);
             DesenhaLadrilho(White, ladrilho);
-            if( ladrilho == None && rand()%10 == 0 ) DesenhaPredio(rand()%6+1, rand()%LAST_COLOR);
+            if( ladrilho == None && chancePredio == 0 ) DesenhaPredio(altura, cor);
             glTranslated(0, 0, 1);
         }
         glPopMatrix();
@@ -308,16 +316,26 @@ void DesenhaPiso()
 
 void animaJogador(){
     Ponto verificaParedes = jogador.posicao + jogador.dir;
-    if( !(verificaParedes.x < -TABULEIRO_X/2 || verificaParedes.x > TABULEIRO_X/2-1 )){
-        if( !(verificaParedes.z < -TABULEIRO_Z/2 || verificaParedes.z > TABULEIRO_Z/2-1 )){
-            int a = tabuleiro.getLadrilho(verificaParedes.x+TABULEIRO_X, verificaParedes.z+TABULEIRO_Z);
-            printf("a=%d, %f,%f\n", a, verificaParedes.x, verificaParedes.z);
+    verificaParedes.x = round(verificaParedes.x);
+    verificaParedes.z = round(verificaParedes.z);
+    if( !(verificaParedes.x < 0 || verificaParedes.x > TABULEIRO_X-1 )){
+        if( !(verificaParedes.z < 0 || verificaParedes.z > TABULEIRO_Z-1 )){
+            int piso = tabuleiro.getLadrilho(static_cast<int>(verificaParedes.x), static_cast<int>(verificaParedes.z));
+            if(piso == None)
+                goto here;
             jogador.posicao = verificaParedes;
         }
-        else jogador.dir = Ponto(0,0,0);
+        else goto here;
     }
-    else jogador.dir = Ponto(0,0,0);
+    else{
+        here:
+        jogador.dir = Ponto(0,0,0);
+        jogador.posicao.imprime("\n");
+    }
+    if(jogador.dir.x == 0 && jogador.dir.z == 0)
+        jogador.rotacao = rotacao;
     jogador.desenha(0);
+
 }
 
 // **********************************************************************
@@ -329,7 +347,7 @@ void DefineLuz(void)
   GLfloat LuzAmbiente[]   = {0.4, 0.4, 0.4 } ;
   GLfloat LuzDifusa[]   = {0.7, 0.7, 0.7};
   GLfloat LuzEspecular[] = {0.9f, 0.9f, 0.9 };
-  GLfloat PosicaoLuz0[]  = {0.0f, 3.0f, 5.0f };  // Posi��o da Luz
+  GLfloat PosicaoLuz0[]  = {TABULEIRO_X/2.0f, 3.0f, TABULEIRO_Z/2.0f };  // Posi��o da Luz
   GLfloat Especularidade[] = {1.0f, 1.0f, 1.0f};
 
    // ****************  Fonte de Luz 0
@@ -384,8 +402,34 @@ void PosicUser()
     glLoadIdentity();
 
     if (camera == 0){
-        gluLookAt(jogador.posicao.x, jogador.posicao.y+3, jogador.posicao.z-2,   // Posi��o do Observador
-              jogador.posicao.x,jogador.posicao.y,jogador.posicao.z+3,     // Posi��o do Alvo
+        float cameraX, cameraZ;
+        float alvoX = jogador.posicao.x;
+        float alvoZ = jogador.posicao.z;
+        switch(static_cast<int>(rotacao)){
+            case 0: //reto
+                cameraX = jogador.posicao.x;
+                cameraZ = jogador.posicao.z-2;
+                alvoZ +=3;   
+                break;
+            case 270: //esquerda
+                alvoX +=3; 
+                cameraZ =jogador.posicao.z;
+                cameraX =jogador.posicao.x-2;
+                break;
+            case 90: //direita
+                alvoX -=3;  
+                cameraZ =jogador.posicao.z;
+                cameraX =jogador.posicao.x+2;
+                break;
+            case 180: //traseira
+                alvoZ -=3;
+                cameraZ =jogador.posicao.z+2;
+                cameraX =jogador.posicao.x;
+                break;
+        }
+
+        gluLookAt(cameraX, jogador.posicao.y+3, cameraZ,   // Posi��o do Observador
+              alvoX,jogador.posicao.y,alvoZ,     // Posi��o do Alvo
               0.0f,1.0f,0.0f);
     }else{
         gluLookAt(obsX, obsY, obsZ,   // Posi��o do Observador
@@ -484,6 +528,14 @@ void keyboard ( unsigned char key, int x, int y )
         case '6':
             obsZ-=1;
             break;
+        case ' ':
+            if(jogador.dir.x == 0 && jogador.dir.z == 0)
+                andaFrente(jogador, rotacao, tabuleiro);
+            else {
+                jogador.dir.x = 0;
+                jogador.dir.z = 0;
+            }
+            break;
         default:
             break;
     }
@@ -502,18 +554,17 @@ void arrow_keys ( int a_keys, int x, int y )
 {
 	switch ( a_keys ){
         case GLUT_KEY_UP:     
-            andaFrente(jogador);
             break;
         case GLUT_KEY_LEFT:
-            jogador.rotacao -= 90;
-            if(jogador.rotacao >= 360){
-               jogador.rotacao = 0; 
+            rotacao -= 90;
+            if(rotacao <= 0){
+               rotacao = 270; 
             }
             break;
         case GLUT_KEY_RIGHT:
-            jogador.rotacao += 90;
-            if(jogador.rotacao <= 0){
-               jogador.rotacao = 360; 
+            rotacao += 90;
+            if(rotacao >= 360){
+               rotacao = 0; 
             }
             break;
         default:
@@ -532,10 +583,9 @@ int main ( int argc, char** argv )
 	glutInitDisplayMode (GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGB );
 	glutInitWindowPosition (0,0);
 	glutInitWindowSize  ( WIDTH, HEIGHT );
-	glutCreateWindow    ( "Computacao Grafica - Exemplo Basico 3D" );
+	glutCreateWindow    ( "Computacao Grafica - Cidade 3D" );
 
 	init ();
-    //system("pwd");
 
 	glutDisplayFunc ( display );
 	glutReshapeFunc ( reshape );

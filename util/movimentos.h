@@ -2,8 +2,9 @@
 #define movimentos_hpp
 
 #include "../app/Instancia.h"
+#include "../app/Modelo.h"
 
-void andaFrente(Instancia &jogador);
+void andaFrente(Instancia &jogador, float rotacao,Modelo &tabuleiro);
 
 Ponto andaFrenteCamera(float rotacao);
 
