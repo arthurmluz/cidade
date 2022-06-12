@@ -98,16 +98,13 @@ void Modelo::LeObjeto(const char *nome){
     input >> a;
 
     input >> lin >> col;
-//    cout << "lin: " << lin << " col: " << col << endl;
-    char tmp;
+    //cout << "lin: " << lin << " col: " << col << endl;
+    int tmp;
+    cout << endl;
     for(int y = lin-1; y >= 0; y--){
         for(int x = 0; x < col; x++){
             input >> tmp;
-            if(tmp == '.') tmp = -1;
-            else if(tmp == 'x') tmp = -2;
-                else tmp -= '0';
             matriz[x][y] = tmp;
-
         }
     }
 

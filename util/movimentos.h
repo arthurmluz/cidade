@@ -5,4 +5,6 @@
 
 void andaFrente(Instancia &jogador, int tamMapa);
 
+Ponto andaFrenteCamera(float rotacao);
+
 #endif

@@ -35,6 +35,9 @@ using namespace std;
 #include "app/Ponto.h"
 #include "app/Modelo.h"
 
+#include "util/movimentos.h"
+#include "util/TextureClass.h"
+
 #define WIDTH 900
 #define HEIGHT 900
 
@@ -45,6 +48,7 @@ Temporizador T;
 double AccumDeltaT=0;
 
 GLfloat AspectRatio, angulo=0;
+float rotacao = 0;
 
 // Controle do modo de projecao
 // 0: Projecao Paralela Ortografica; 1: Projecao Perspectiva
@@ -66,6 +70,36 @@ Modelo tabuleiro;
 double nFrames=0;
 double TempoTotal=0;
 Ponto CantoEsquerdo = {-static_cast<float>(TABULEIRO_X),-1,-static_cast<float>(TABULEIRO_Z)};
+
+//TEXTURAS
+// Lista de nomes das texturas
+string nomeTexturas[] = {
+    "CROSS.png",
+    "DL.png",
+    "DLR.png",
+    "DR.png",
+    "LR.png",
+    "None.png",
+    "UD.png",
+    "UDL.png",
+    "UDR.png",
+    "UL.png",
+    "ULR.png",
+    "UR.png"};
+
+int idTexturaRua[LAST_IMG];  // vetor com os identificadores das texturas
+
+
+// **********************************************************************
+// void CarregaTexturas()
+// **********************************************************************
+void initTexture()
+{
+    for(int i=0;i<LAST_IMG;i++){
+        string filename = "assets/"+nomeTexturas[i];
+        idTexturaRua[i] = LoadTexture(filename.c_str());
+    }
+}
 // **********************************************************************
 //  void init(void)
 //        Inicializa os parametros globais de OpenGL
@@ -81,8 +115,9 @@ void init(void)
     glEnable(GL_NORMALIZE);
     glShadeModel(GL_SMOOTH);
     //glShadeModel(GL_FLAT);
+    initTexture();
     
-    tabuleiro.LeObjeto("txts/tabuleiro.txt");
+    tabuleiro.LeObjeto("assets/tabuleiro.txt");
     TABULEIRO_X = tabuleiro.getLinhas();
     TABULEIRO_Z = tabuleiro.getColunas();
 
@@ -175,14 +210,30 @@ void DesenhaCubo(float tamAresta)
 // **********************************************************************
 void DesenhaLadrilho(int corBorda, int corDentro)
 {
-    defineCor(corDentro);// desenha QUAD preenchido
-    glBegin ( GL_QUADS );
-        glNormal3f(0,1,0);
-        glVertex3f(-0.5f,  0.0f, -0.5f);
-        glVertex3f(-0.5f,  0.0f,  0.5f);
-        glVertex3f( 0.5f,  0.0f,  0.5f);
-        glVertex3f( 0.5f,  0.0f, -0.5f);
-    glEnd();
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture (GL_TEXTURE_2D, idTexturaRua[corDentro]);
+
+    if(corDentro == None){
+        defineCor(Red);
+    }
+    else defineCor(Gray);// desenha QUAD preenchido
+    glPushMatrix();
+        glBegin ( GL_QUADS );
+            glNormal3f(0,1,0);
+
+            glTexCoord2f(0.5f, 0.0f);
+            glVertex3f(-0.5f,  0.0f, -0.5f);
+
+            glTexCoord2f(1.0f, 0.0f);
+            glVertex3f(-0.5f,  0.0f,  0.5f);
+
+            glTexCoord2f(1.0f, 0.5f);
+            glVertex3f( 0.5f,  0.0f,  0.5f);
+
+            glTexCoord2f(0.5f, 0.5f);
+            glVertex3f( 0.5f,  0.0f, -0.5f);
+        glEnd();
+    glPopMatrix();
 
     defineCor(corBorda);
     glBegin ( GL_LINE_STRIP );
@@ -252,16 +303,6 @@ void DesenhaPiso()
         for(int x=0; x<TABULEIRO_X;x++) {
             bool predio = false;
             int ladrilho = tabuleiro.getLadrilho(z, x);
-
-            if( ladrilho == -1) {
-                ladrilho = Gray;
-            }
-            else if( ladrilho == -2 || ladrilho > 0){
-                    altura = ladrilho;
-                    predio = ladrilho > 0 ? true : false;
-                    ladrilho = Red;
-                }
-
             DesenhaLadrilho(White, ladrilho);
             if(predio) DesenhaPredio(altura, rand()%50);
             glTranslated(0, 0, 1);
@@ -390,19 +431,20 @@ void display( void )
 // **********************************************************************
 void keyboard ( unsigned char key, int x, int y )
 {
+    Ponto novo;
 	switch ( key )	{
         case 27:        // Termina o programa qdo
-          exit ( 0 );   // a tecla ESC for pressionada
-          break;
+            exit ( 0 );   // a tecla ESC for pressionada
+            break;
         case 'p':
-                ModoDeProjecao = !ModoDeProjecao;
-                glutPostRedisplay();
-                break;
+            ModoDeProjecao = !ModoDeProjecao;
+            glutPostRedisplay();
+            break;
         case 'e':
-                ModoDeExibicao = !ModoDeExibicao;
-                init();
-                glutPostRedisplay();
-                break;
+            ModoDeExibicao = !ModoDeExibicao;
+            init();
+            glutPostRedisplay();
+            break;
         case '7':
             obsX+=1;
             break;

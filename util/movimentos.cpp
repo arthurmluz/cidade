@@ -15,7 +15,15 @@ void andaFrente(Instancia &jogador, int tamMapa){
     if(abs(yr) > tamMapa){
         yr = tamMapa * (yr/abs(yr));
     }
-    jogador.dir = Ponto(xr, yr);
+    jogador.dir = Ponto(xr, 0,yr);
 //    printf("(%f, %f)\n", jogador.dir.x, jogador.dir.y);
+}
+
+
+Ponto andaFrenteCamera(float rotacao){
+    float alfa = (rotacao * M_PI)/180.0f;
+    float xr = (-sin(alfa) * 1);
+    float zr = -cos(alfa) * 1;
+    return Ponto(xr, 0, zr);
 }
 
