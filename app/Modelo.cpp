@@ -68,7 +68,7 @@ void Modelo::desenhaVerticesColoridas()
     glPopMatrix();
 }
 
-void Modelo::LeObjeto(const char *nome){
+void Modelo::LeMapa(const char *nome){
     ifstream input;            // ofstream arq;
     input.open(nome, ios::in); //arq.open(nome, ios::out);
     if (!input)
@@ -81,21 +81,21 @@ void Modelo::LeObjeto(const char *nome){
     //int nLinha = 0;
 
     std::string a;
-    getline(input, a); // #CORES
+    getline(input, a); // #PREDIOS
 
-    unsigned int qtdCores;
-    input >> qtdCores;
+    unsigned int qtdPredios;
+    input >> qtdPredios;
 
-    Cor cores[qtdCores];
-    for(int i = 0; i < qtdCores; i++){
-        int tmp, r, g, b;
+    Ponto predios[qtdPredios];
+    for(int i = 0; i < qtdPredios; i++){
+        int tmp;
+        Ponto temp = Ponto(0,0,0);
 
-        // le as cores
-        input >> tmp >> cores[i].r >> cores[i].g >> cores[i].b >> a;
-        //cout << "R: " << cores[i].r << " G: " << cores[i].g << " B: " << cores[i].b << endl;
+        // le os predios
+        input >> tmp >> temp.x >> temp.y >> temp.z >> a;
     }
-    for(int i = 0; i < qtdCores; i++){
-        ListaCores[i] = cores[i];
+    for(int i = 0; i < qtdPredios; i++){
+        ListaPredios[i] = predios[i];
     }
 
     // linha vazia

@@ -26,6 +26,7 @@ class Modelo
     int matriz[1600][1600];
     int lin, col, cores;
     Cor ListaCores[20];
+    Ponto ListaPredios[1000];
 public:
     Modelo();
     int getColunas();
@@ -36,7 +37,7 @@ public:
     void imprime();
     void atualizaLimites();
     void obtemLimites(int &linhas, int &colunas);
-    void LeObjeto(const char *nome);
+    void LeMapa(const char *nome);
     void LeObjetoNave(const char *nome);
 
 

@@ -11,6 +11,8 @@
 #include <iostream>
 #include <cmath>
 #include <ctime>
+#include <vector>
+#include <tuple>
 
 using namespace std;
 
@@ -40,6 +42,10 @@ using namespace std;
 
 #define WIDTH 900
 #define HEIGHT 900
+#define GAS_SPAWN 30
+#define TERRAIN_VIEW 200
+#define BUILDING_RATE 5
+#define BUILDING_HEIGHT 10
 
 int TABULEIRO_X {20};
 int TABULEIRO_Z {20};
@@ -68,7 +74,8 @@ int obsX = 0, obsY = 15, obsZ = 30;
 Modelo tabuleiro, disparador; 
 Instancia jogador;
 
-int camera = 0;
+int camera = 0, qtdGasolina = 100;
+vector<Modelo> gasolina;
 
 double nFrames=0;
 double TempoTotal=0;
@@ -112,10 +119,10 @@ void desenhaDisparador(int num);
 void criaInstancias(){
     int lin, col;
     disparador.obtemLimites(lin, col);
-    jogador.posicao = Ponto(0, -0.5, 0);
+    jogador.posicao = Ponto(TABULEIRO_X/2, -0.7, TABULEIRO_Z/2);
     jogador.rotacao = 0;
     jogador.modelo = desenhaDisparador;
-    jogador.escala = Ponto(0.025, 0, 0.025);
+    jogador.escala = Ponto(0.02, 0, 0.02);
     if( lin > col ) 
         jogador.raio = lin/2 * jogador.escala.x;
         //jogador.raio = (max.x/5) * jogador.escala.x;//TAM_MAPA/100; 
@@ -136,7 +143,7 @@ void init(void)
     //glShadeModel(GL_FLAT);
     initTexture();
     
-    tabuleiro.LeObjeto("assets/tabuleiro_1280.txt");
+    tabuleiro.LeMapa("assets/tabuleiro_1280.txt");
     TABULEIRO_Z = tabuleiro.getLinhas();
     TABULEIRO_X = tabuleiro.getColunas();
 
@@ -236,6 +243,15 @@ void desenhaDisparador(int num){
     glPopMatrix();
 }
 
+void criaGasolina(){
+
+}
+// **********************************************************************
+void desenhaGasolina(){
+    if( gasolina.size() < GAS_SPAWN ){
+        criaGasolina();
+    }
+}
 // **********************************************************************
 //
 //
@@ -292,13 +308,13 @@ void DesenhaPiso()
     for(int x=0; x<TABULEIRO_X;x++) {
         glPushMatrix();
         for(int z=0; z<TABULEIRO_Z;z++) {
-            float chancePredio = rand()%10;
-            float altura = rand()%6+1;
+            float chancePredio = rand()%BUILDING_RATE;
+            float altura = rand()%BUILDING_HEIGHT+1;
             float cor = rand()%LAST_COLOR;
-            if(x < jogador.posicao.x-200 || x > jogador.posicao.x+200) {
+            if(x < jogador.posicao.x-TERRAIN_VIEW || x > jogador.posicao.x+TERRAIN_VIEW) {
                 continue;
             }
-            if(z < jogador.posicao.z-200 || z > jogador.posicao.z+200) {
+            if(z < jogador.posicao.z-TERRAIN_VIEW || z > jogador.posicao.z+TERRAIN_VIEW) {
                 continue;
             }
 
@@ -401,40 +417,54 @@ void PosicUser()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    if (camera == 0){
-        float cameraX, cameraZ;
-        float alvoX = jogador.posicao.x;
-        float alvoZ = jogador.posicao.z;
-        switch(static_cast<int>(rotacao)){
-            case 0: //reto
-                cameraX = jogador.posicao.x;
-                cameraZ = jogador.posicao.z-2;
+    float cameraX, cameraZ;
+    float alvoX = jogador.posicao.x;
+    float alvoZ = jogador.posicao.z;
+    switch(static_cast<int>(rotacao)){
+        case 0: //reto
+            cameraX = jogador.posicao.x;
+            cameraZ = jogador.posicao.z-2;
+            alvoZ +=3;   
                 alvoZ +=3;   
-                break;
-            case 270: //esquerda
+            alvoZ +=3;   
+            break;
+        case 270: //esquerda
+            alvoX +=3; 
                 alvoX +=3; 
-                cameraZ =jogador.posicao.z;
-                cameraX =jogador.posicao.x-2;
-                break;
-            case 90: //direita
+            alvoX +=3; 
+            cameraZ =jogador.posicao.z;
+            cameraX =jogador.posicao.x-2;
+            break;
+        case 90: //direita
+            alvoX -=3;  
                 alvoX -=3;  
-                cameraZ =jogador.posicao.z;
-                cameraX =jogador.posicao.x+2;
-                break;
-            case 180: //traseira
-                alvoZ -=3;
-                cameraZ =jogador.posicao.z+2;
-                cameraX =jogador.posicao.x;
-                break;
-        }
+            alvoX -=3;  
+            cameraZ =jogador.posicao.z;
+            cameraX =jogador.posicao.x+2;
+            break;
+        case 180: //traseira
+            alvoZ -=3;
+            cameraZ =jogador.posicao.z+2;
+            cameraX =jogador.posicao.x;
+            break;
+    }
 
+    // padrão
+    if (camera == 0){
         gluLookAt(cameraX, jogador.posicao.y+3, cameraZ,   // Posi��o do Observador
               alvoX,jogador.posicao.y,alvoZ,     // Posi��o do Alvo
               0.0f,1.0f,0.0f);
     }else{
-        gluLookAt(obsX, obsY, obsZ,   // Posi��o do Observador
-              jogador.posicao.x, jogador.posicao.y, jogador.posicao.z,     // Posi��o do Alvo
-              0.0f,1.0f,0.0f);
+        if(camera == 1){
+            gluLookAt(obsX, obsY, obsZ,   // Posi��o do Observador
+                  jogador.posicao.x, jogador.posicao.y, jogador.posicao.z,     // Posi��o do Alvo
+                  0.0f,1.0f,0.0f);
+        }
+        else{
+            gluLookAt(jogador.posicao.x, jogador.posicao.y, jogador.posicao.z,   // Posi��o do Observador
+                  alvoX, jogador.posicao.y, alvoZ,     // Posi��o do Alvo
+                  0.0f,1.0f,0.0f);
+        }
     }
 
 }
@@ -468,7 +498,6 @@ void reshape( int w, int h )
 float PosicaoZ = -30;
 void display( void )
 {
-
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	DefineLuz();
@@ -480,6 +509,7 @@ void display( void )
     DesenhaPiso();
 
     animaJogador();
+    desenhaGasolina();
 
 	glutSwapBuffers();
 }
@@ -507,7 +537,11 @@ void keyboard ( unsigned char key, int x, int y )
             glutPostRedisplay();
             break;
         case 'v':
-            camera= camera >= 3 ? 0 : camera+1;
+            camera= camera >= 2 ? 0 : camera+1;
+            obsX = jogador.posicao.x;
+            obsY = jogador.posicao.y+10;
+            obsZ = jogador.posicao.z-2;
+
             break;
 
         case '7':
