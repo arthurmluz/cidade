@@ -46,6 +46,7 @@ using namespace std;
 #define TERRAIN_VIEW 200
 #define BUILDING_RATE 5
 #define BUILDING_HEIGHT 10
+int SPEED {1};
 
 int TABULEIRO_X {20};
 int TABULEIRO_Z {20};
@@ -330,13 +331,19 @@ void DesenhaPiso()
     glPopMatrix();
 }
 
-void animaJogador(){
+void andaJogador(){
+    double modulo = jogador.dir.modulo();
+    if(modulo == 0) return;
+    jogador.dir = (jogador.dir / modulo) * SPEED;
+
     Ponto verificaParedes = jogador.posicao + jogador.dir;
     verificaParedes.x = round(verificaParedes.x);
     verificaParedes.z = round(verificaParedes.z);
     if( !(verificaParedes.x < 0 || verificaParedes.x > TABULEIRO_X-1 )){
         if( !(verificaParedes.z < 0 || verificaParedes.z > TABULEIRO_Z-1 )){
-            int piso = tabuleiro.getLadrilho(static_cast<int>(verificaParedes.x), static_cast<int>(verificaParedes.z));
+            Ponto testeProximo = jogador.posicao + (jogador.dir / (modulo * SPEED));
+            testeProximo.x = round(testeProximo.x); testeProximo.z = round(testeProximo.z);
+            int piso = tabuleiro.getLadrilho(static_cast<int>(testeProximo.x), static_cast<int>(testeProximo.z));
             if(piso == None)
                 goto here;
             jogador.posicao = verificaParedes;
@@ -345,13 +352,21 @@ void animaJogador(){
     }
     else{
         here:
-        jogador.dir = Ponto(0,0,0);
-        jogador.posicao.imprime("\n");
+        double modulo = jogador.dir.modulo();
+        if(modulo > 1){
+            jogador.dir.versor();
+            SPEED = 1;
+        }
+        else jogador.dir = Ponto(0,0,0);
     }
+
+}
+void animaJogador(){
+    andaJogador();
     if(jogador.dir.x == 0 && jogador.dir.z == 0)
         jogador.rotacao = rotacao;
-    jogador.desenha(0);
 
+    jogador.desenha(0);
 }
 
 // **********************************************************************
@@ -568,6 +583,7 @@ void keyboard ( unsigned char key, int x, int y )
             else {
                 jogador.dir.x = 0;
                 jogador.dir.z = 0;
+                SPEED = 1;
             }
             break;
         default:
@@ -588,6 +604,9 @@ void arrow_keys ( int a_keys, int x, int y )
 {
 	switch ( a_keys ){
         case GLUT_KEY_UP:     
+            SPEED++;
+            if(SPEED >= 5) SPEED = 5;
+            printf("speed = %d\n", SPEED);
             break;
         case GLUT_KEY_LEFT:
             rotacao -= 90;
@@ -600,6 +619,11 @@ void arrow_keys ( int a_keys, int x, int y )
             if(rotacao >= 360){
                rotacao = 0; 
             }
+            break;
+        case GLUT_KEY_DOWN:
+            SPEED--;
+            if(SPEED <= 0) SPEED = 1;
+            printf("speed = %d\n", SPEED);
             break;
         default:
             break;
