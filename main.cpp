@@ -465,7 +465,7 @@ void PosicUser()
     switch(static_cast<int>(rotacao)){
         case 0: //reto
             cameraX = jogador.posicao.x;
-            cameraZ = jogador.posicao.z-SPEED;
+            cameraZ = jogador.posicao.z-2;
             alvoZ +=3;   
             break;
         case 270: //esquerda
@@ -487,8 +487,8 @@ void PosicUser()
 
     // padrão
     if (camera == 0){
-        gluLookAt(cameraX, jogador.posicao.y+3, cameraZ,   // Posi��o do Observador
-              alvoX,jogador.posicao.y,alvoZ,     // Posi��o do Alvo
+        gluLookAt(cameraX+jogador.dir.x, jogador.posicao.y+3, cameraZ+jogador.dir.z,   // Posi��o do Observador
+              alvoX+jogador.dir.x,jogador.posicao.y,alvoZ+jogador.dir.z,     // Posi��o do Alvo
               0.0f,1.0f,0.0f);
     }else{
         if(camera == 1){
@@ -497,8 +497,8 @@ void PosicUser()
                   0.0f,1.0f,0.0f);
         }
         else{
-            gluLookAt(jogador.posicao.x, jogador.posicao.y+0.5, jogador.posicao.z,   // Posi��o do Observador
-                  alvoX, jogador.posicao.y, alvoZ,     // Posi��o do Alvo
+            gluLookAt(jogador.posicao.x+jogador.dir.x, jogador.posicao.y+0.5, jogador.posicao.z+jogador.dir.z,   // Posi��o do Observador
+                  alvoX+jogador.dir.x, jogador.posicao.y, alvoZ+jogador.dir.z,     // Posi��o do Alvo
                   0.0f,1.0f,0.0f);
         }
     }
@@ -635,7 +635,7 @@ void arrow_keys ( int a_keys, int x, int y )
             break;
         case GLUT_KEY_LEFT:
             rotacao -= 90;
-            if(rotacao <= 0){
+            if(rotacao < 0){
                rotacao = 270; 
             }
             printf("%f\n", jogador.rotacao);
