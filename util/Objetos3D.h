@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <climits>
 #include <ctime>
 #include <fstream>
 
@@ -47,6 +48,11 @@ typedef struct{
     int r;
     int g;
     int b;
+    void imprime()
+    {
+        cout << "R: " << r << " G: " << g << " B: " << b << endl;
+    }
+
 } RGB;
 
 typedef struct // Struct para armazenar um triângulo
@@ -67,10 +73,15 @@ class Objeto3D
     TTriangle *faces; // vetor de faces
     unsigned int nFaces; // Variavel que armazena o numero de faces do objeto
 public:
+    int maxX, maxY, maxZ;
+    int minX, minY, minZ;
+
     Objeto3D()
     {
         nFaces = 0;
         faces = NULL;
+        maxX = maxY = maxZ = INT_MIN;
+        minX = minY = minZ = INT_MAX;
     }
     unsigned int getNFaces()
     {

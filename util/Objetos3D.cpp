@@ -37,15 +37,41 @@ void Objeto3D::LeObjeto (string Nome)
     for (int i=0;i<nFaces;i++)
     {
         // Le os trs vŽrtices
-        arq >> x >> y >> z ;//>> str; // Vertice 1
+        arq >> x >> y >> z; // Vertice 1
         faces[i].P1.Set(x,y,z);
-     //   sscanf(str, "0x%02x%02x%02x", &faces[i].cor.r, &faces[i].cor.g, &faces[i].cor.b);
-        arq >> x >> y >> z ;//>> str; // Vertice 2
+        if(x > maxX) maxX = x;
+        if(x < minX) minX = x;
+
+        if(y > maxY) maxY = y;
+        if(y < minY) minY = y;
+
+        if(z > maxZ) maxZ = z;
+        if(z < minZ) minZ = z;
+
+        arq >> x >> y >> z; // Vertice 2
         faces[i].P2.Set(x,y,z);
-     //   sscanf(str, "0x%02x%02x%02x", &faces[i].cor.r, &faces[i].cor.g, &faces[i].cor.b);
-        arq >> x >> y >> z ;//>> str; // Vertice 3
+        if(x > maxX) maxX = x;
+        if(x < minX) minX = x;
+
+        if(y > maxY) maxY = y;
+        if(y < minY) minY = y;
+
+        if(z > maxZ) maxZ = z;
+        if(z < minZ) minZ = z;
+
+        arq >> x >> y >> z >> str; // Vertice 3
         faces[i].P3.Set(x,y,z);
-     //   sscanf(str, "0x%02x%02x%02x", &faces[i].cor.r, &faces[i].cor.g, &faces[i].cor.b);
+        sscanf(str, "0x%02x%02x%02x", &faces[i].cor.r, &faces[i].cor.g, &faces[i].cor.b);
+
+        if(x > maxX) maxX = x;
+        if(x < minX) minX = x;
+
+        if(y > maxY) maxY = y;
+        if(y < minY) minY = y;
+
+        if(z > maxZ) maxZ = z;
+        if(z < minZ) minZ = z;
+
     }
     cout << "Arquivo " << Nome.c_str() << " Lido com Sucesso." << endl;
 }
@@ -57,8 +83,7 @@ void Objeto3D::ExibeObjeto ()
 {
     for(int i =0;i < nFaces; i++){
         glBegin(GL_TRIANGLES);
-//         glColor3f(faces[i].cor.r, faces[i].cor.g, faces[i].cor.b);
-         glColor3f(10, 0, 0);
+         glColor3f(faces[i].cor.r/255.0, faces[i].cor.g/255.0, faces[i].cor.b/255.0);
          glVertex3f(faces[i].P1.X, faces[i].P1.Y, faces[i].P1.Z);
          glVertex3f(faces[i].P2.X, faces[i].P2.Y, faces[i].P2.Z);
          glVertex3f(faces[i].P3.X, faces[i].P3.Y, faces[i].P3.Z);

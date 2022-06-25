@@ -125,10 +125,10 @@ void desenhaDisparador(int num);
 void criaInstancias(){
     int lin, col;
     disparador.obtemLimites(lin, col);
-    jogador.posicao = Ponto(TABULEIRO_X/2, -0.7, TABULEIRO_Z/2);
+    jogador.posicao = Ponto(TABULEIRO_X/2, -1, TABULEIRO_Z/2);
     jogador.rotacao = 0;
     jogador.modelo = desenhaDisparador;
-    jogador.escala = Ponto(0.02, 0, 0.02);
+    jogador.escala = Ponto(0.09, 0.09, 0.09);
     if( lin > col ) 
         jogador.raio = lin/2 * jogador.escala.x;
         //jogador.raio = (max.x/5) * jogador.escala.x;//TAM_MAPA/100; 
@@ -149,7 +149,7 @@ void init(void)
     //glShadeModel(GL_FLAT);
     initTexture();
 
-    Objetos[0].LeObjeto(static_cast<string>("assets/teste.txt"));
+    Objetos[0].LeObjeto(static_cast<string>("assets/TRIs/moto_2.tri"));
 
     string nome = static_cast<string>("assets/")+NOME_MAPA+static_cast<string>(".txt");
     tabuleiro.LeMapa(nome.c_str());
@@ -251,12 +251,23 @@ void DesenhaLadrilho(int corBorda, int corDentro)
 }
 
 // **********************************************************************
+//void desenhaDisparador(int num){
+//    int lin, col;
+//    disparador.obtemLimites(lin, col);
+//    glPushMatrix();
+//        glTranslatef(-(col/2), 0, -(lin/2));
+//        disparador.desenhaVerticesColoridas();
+//    glPopMatrix();
+//}
+
 void desenhaDisparador(int num){
-    int lin, col;
-    disparador.obtemLimites(lin, col);
+    //int difX = abs(Objetos[0].maxX - Objetos[0].minX);
+    //int difY = abs(Objetos[0].maxY - Objetos[0].minY);
+    //int difZ = abs(Objetos[0].maxZ - Objetos[0].minZ);
     glPushMatrix();
-        glTranslatef(-(col/2), 0, -(lin/2));
-        disparador.desenhaVerticesColoridas();
+   //     glTranslatef(-difX, 0, -difZ);
+        glRotatef(270, 0, 1, 0);
+        Objetos[0].ExibeObjeto();
     glPopMatrix();
 }
 
@@ -454,7 +465,7 @@ void PosicUser()
     switch(static_cast<int>(rotacao)){
         case 0: //reto
             cameraX = jogador.posicao.x;
-            cameraZ = jogador.posicao.z-2;
+            cameraZ = jogador.posicao.z-SPEED;
             alvoZ +=3;   
             break;
         case 270: //esquerda
@@ -486,7 +497,7 @@ void PosicUser()
                   0.0f,1.0f,0.0f);
         }
         else{
-            gluLookAt(jogador.posicao.x, jogador.posicao.y, jogador.posicao.z,   // Posi��o do Observador
+            gluLookAt(jogador.posicao.x, jogador.posicao.y+0.5, jogador.posicao.z,   // Posi��o do Observador
                   alvoX, jogador.posicao.y, alvoZ,     // Posi��o do Alvo
                   0.0f,1.0f,0.0f);
         }
@@ -532,11 +543,11 @@ void display( void )
 
 	glMatrixMode(GL_MODELVIEW);
 
-   // DesenhaPiso();
-    glPushMatrix();
-        glTranslatef(TABULEIRO_X/2, 0, TABULEIRO_Z/2);
-        Objetos[0].ExibeObjeto();
-    glPopMatrix();
+    DesenhaPiso();
+//    glPushMatrix();
+//        glTranslatef(TABULEIRO_X/2, 0, TABULEIRO_Z/2);
+//        Objetos[0].ExibeObjeto();
+//    glPopMatrix();
     animaJogador();
     desenhaGasolina();
 
