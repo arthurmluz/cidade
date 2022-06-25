@@ -39,6 +39,7 @@ using namespace std;
 
 #include "util/movimentos.h"
 #include "util/TextureClass.h"
+#include "util/Objetos3D.h"
 
 #define WIDTH 900
 #define HEIGHT 900
@@ -46,7 +47,10 @@ using namespace std;
 #define TERRAIN_VIEW 200
 #define BUILDING_RATE 5
 #define BUILDING_HEIGHT 10
+
+#define NOME_MAPA "tabuleiro_1280"
 int SPEED {1};
+int MAX_SPEED {5};
 
 int TABULEIRO_X {20};
 int TABULEIRO_Z {20};
@@ -82,6 +86,7 @@ double nFrames=0;
 double TempoTotal=0;
 Ponto CantoEsquerdo = {-static_cast<float>(TABULEIRO_X),-1,-static_cast<float>(TABULEIRO_Z)};
 
+Objeto3D *Objetos = new Objeto3D[1];
 //TEXTURAS
 // Lista de nomes das texturas
 string nomeTexturas[] = {
@@ -143,16 +148,21 @@ void init(void)
     glShadeModel(GL_SMOOTH);
     //glShadeModel(GL_FLAT);
     initTexture();
-    
-    tabuleiro.LeMapa("assets/tabuleiro_1280.txt");
+
+    Objetos[0].LeObjeto(static_cast<string>("assets/teste.txt"));
+
+    string nome = static_cast<string>("assets/")+NOME_MAPA+static_cast<string>(".txt");
+    tabuleiro.LeMapa(nome.c_str());
+
     TABULEIRO_Z = tabuleiro.getLinhas();
     TABULEIRO_X = tabuleiro.getColunas();
 
+    int maior = TABULEIRO_X > TABULEIRO_Z ? TABULEIRO_X : TABULEIRO_Z;
+    
     disparador.LeObjetoNave("assets/nave.txt");
     criaInstancias();
     obsX=0;obsY=6;obsZ=-4;
 
-    
     //CantoEsquerdo = {-static_cast<float>(TABULEIRO_X),-1, -static_cast<float>(TABULEIRO_Z)};
 
     CantoEsquerdo = {0,-1, 0};
@@ -213,13 +223,19 @@ void DesenhaLadrilho(int corBorda, int corDentro)
             glTexCoord2f(0.0, 0.0f);
             glVertex3f(-0.5f,  0.0f, -0.5f);
 
-            glTexCoord2f(1.0f, 0.0f);
+            if(NOME_MAPA == "Mapa1")
+                glTexCoord2f(0.0f, 1.0f);
+            else
+                glTexCoord2f(1.0f, 0.0f);
             glVertex3f(-0.5f,  0.0f,  0.5f);
 
             glTexCoord2f(1.0f, 1.0f);
             glVertex3f( 0.5f,  0.0f,  0.5f);
 
-            glTexCoord2f(0.0, 1.0f);
+            if(NOME_MAPA == "Mapa1")
+                glTexCoord2f(1.0f, 0.0f);
+            else
+                glTexCoord2f(0.0f, 1.0f);
             glVertex3f( 0.5f,  0.0f, -0.5f);
         glEnd();
     glPopMatrix();
@@ -440,19 +456,13 @@ void PosicUser()
             cameraX = jogador.posicao.x;
             cameraZ = jogador.posicao.z-2;
             alvoZ +=3;   
-                alvoZ +=3;   
-            alvoZ +=3;   
             break;
         case 270: //esquerda
-            alvoX +=3; 
-                alvoX +=3; 
             alvoX +=3; 
             cameraZ =jogador.posicao.z;
             cameraX =jogador.posicao.x-2;
             break;
         case 90: //direita
-            alvoX -=3;  
-                alvoX -=3;  
             alvoX -=3;  
             cameraZ =jogador.posicao.z;
             cameraX =jogador.posicao.x+2;
@@ -515,14 +525,18 @@ void display( void )
 {
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
+    glLoadIdentity();
 	DefineLuz();
 
 	PosicUser();
 
 	glMatrixMode(GL_MODELVIEW);
 
-    DesenhaPiso();
-
+   // DesenhaPiso();
+    glPushMatrix();
+        glTranslatef(TABULEIRO_X/2, 0, TABULEIRO_Z/2);
+        Objetos[0].ExibeObjeto();
+    glPopMatrix();
     animaJogador();
     desenhaGasolina();
 
@@ -605,7 +619,7 @@ void arrow_keys ( int a_keys, int x, int y )
 	switch ( a_keys ){
         case GLUT_KEY_UP:     
             SPEED++;
-            if(SPEED >= 5) SPEED = 5;
+            if(SPEED >= MAX_SPEED) SPEED = MAX_SPEED;
             printf("speed = %d\n", SPEED);
             break;
         case GLUT_KEY_LEFT:
@@ -613,12 +627,14 @@ void arrow_keys ( int a_keys, int x, int y )
             if(rotacao <= 0){
                rotacao = 270; 
             }
+            printf("%f\n", jogador.rotacao);
             break;
         case GLUT_KEY_RIGHT:
             rotacao += 90;
             if(rotacao >= 360){
                rotacao = 0; 
             }
+            printf("%f\n", jogador.rotacao);
             break;
         case GLUT_KEY_DOWN:
             SPEED--;
