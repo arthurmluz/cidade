@@ -10,7 +10,7 @@ void andaFrente(Instancia &jogador, float rotacao, Modelo &tabuleiro){
     int novoZ = jogador.posicao.z+jogador.dir.z;
     if(!(tabuleiro.getLadrilho(novoX,novoZ) == 5))
         jogador.dir = jogador.dir * 1;
-    printf("a = %d, %d, %d\n", tabuleiro.getLadrilho(novoX,novoZ), novoX, novoZ);
+    //printf("a = %d, %d, %d\n", tabuleiro.getLadrilho(novoX,novoZ), novoX, novoZ);
 
 }
 

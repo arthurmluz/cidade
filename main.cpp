@@ -43,12 +43,14 @@ using namespace std;
 
 #define WIDTH 900
 #define HEIGHT 900
-#define GAS_SPAWN 30
+#define GAS_SPAWN 20
+#define GAS_SPAWN_RATE 2000
 #define TERRAIN_VIEW 200
 #define BUILDING_RATE 5
 #define BUILDING_HEIGHT 10
 
-#define NOME_MAPA "tabuleiro_1280"
+#define NOME_MAPA "Mapa1"
+
 int SPEED {1};
 int MAX_SPEED {5};
 
@@ -58,8 +60,8 @@ int TABULEIRO_Z {20};
 Temporizador T;
 double AccumDeltaT=0;
 
-GLfloat AspectRatio, angulo=0;
-float rotacao = 0;
+GLfloat AspectRatio;
+float rotacao = 0, angulo = 0;
 
 // Controle do modo de projecao
 // 0: Projecao Paralela Ortografica; 1: Projecao Perspectiva
@@ -79,8 +81,8 @@ int obsX = 0, obsY = 15, obsZ = 30;
 Modelo tabuleiro, disparador; 
 Instancia jogador;
 
-int camera = 0, qtdGasolina = 100;
-vector<Modelo> gasolina;
+int camera = 0, qtdGasolina = 50;
+vector<Instancia> gasolina;
 
 double nFrames=0;
 double TempoTotal=0;
@@ -128,7 +130,7 @@ void criaInstancias(){
     jogador.posicao = Ponto(TABULEIRO_X/2, -1, TABULEIRO_Z/2);
     jogador.rotacao = 0;
     jogador.modelo = desenhaDisparador;
-    jogador.escala = Ponto(0.09, 0.09, 0.09);
+    jogador.escala = Ponto(0.04, 0.04, 0.04);
     if( lin > col ) 
         jogador.raio = lin/2 * jogador.escala.x;
         //jogador.raio = (max.x/5) * jogador.escala.x;//TAM_MAPA/100; 
@@ -150,6 +152,8 @@ void init(void)
     initTexture();
 
     Objetos[0].LeObjeto(static_cast<string>("assets/TRIs/moto_2.tri"));
+
+    Objetos[1].LeObjeto(static_cast<string>("assets/TRIs/canister.tri"));
 
     string nome = static_cast<string>("assets/")+NOME_MAPA+static_cast<string>(".txt");
     tabuleiro.LeMapa(nome.c_str());
@@ -185,6 +189,8 @@ void animate()
     AccumDeltaT += dt;
     TempoTotal += dt;
     nFrames++;
+    angulo+=0.0001;
+    if(angulo >= 360) angulo = 0;
 
     if (AccumDeltaT > 1.0/30) // fixa a atualiza��o da tela em 30
     {
@@ -261,23 +267,42 @@ void DesenhaLadrilho(int corBorda, int corDentro)
 //}
 
 void desenhaDisparador(int num){
-    //int difX = abs(Objetos[0].maxX - Objetos[0].minX);
-    //int difY = abs(Objetos[0].maxY - Objetos[0].minY);
-    //int difZ = abs(Objetos[0].maxZ - Objetos[0].minZ);
     glPushMatrix();
-   //     glTranslatef(-difX, 0, -difZ);
         glRotatef(270, 0, 1, 0);
         Objetos[0].ExibeObjeto();
     glPopMatrix();
 }
 
-void criaGasolina(){
 
-}
 // **********************************************************************
-void desenhaGasolina(){
-    if( gasolina.size() < GAS_SPAWN ){
-        criaGasolina();
+void desenhaGasolina(int num){
+    glPushMatrix();
+        glTranslatef(0, -0.99, 0);
+        glScalef(0.1, 0.1, 0.1);
+        glRotatef(angulo, 0, 1, 0);
+        Objetos[1].ExibeObjeto();
+    glPopMatrix();
+}
+
+void criaGasolina(){
+    for(int i = 0; i < TABULEIRO_X; i++){
+        for(int j =0; j < TABULEIRO_Z; j++ ){
+            if(tabuleiro.getLadrilho(i, j) != None && rand()%GAS_SPAWN_RATE == 0){
+                gasolina.push_back(Instancia());
+                Instancia &gas = gasolina.back();
+                gas.modelo = desenhaGasolina;
+                //gas.escala = Ponto(0.1, 0.1, 0.1);
+                gas.posicao = Ponto(i, 0, j);
+            }
+        }
+    }
+}
+
+void DesenhaGasolinas(){
+    srand(time(NULL));
+    while(gasolina.size() < GAS_SPAWN) criaGasolina();
+    for(Instancia &gas: gasolina){
+        gas.desenha(0);
     }
 }
 // **********************************************************************
@@ -327,8 +352,7 @@ void DesenhaPredio(int altura, int cor){
     glEnd();
 }
 
-void DesenhaPiso()
-{
+void DesenhaPiso(){
     srand(101);
     glPushMatrix();
     glTranslated(CantoEsquerdo.x/2, CantoEsquerdo.y, CantoEsquerdo.z/2);
@@ -497,7 +521,7 @@ void PosicUser()
                   0.0f,1.0f,0.0f);
         }
         else{
-            gluLookAt(jogador.posicao.x+jogador.dir.x, jogador.posicao.y+0.5, jogador.posicao.z+jogador.dir.z,   // Posi��o do Observador
+            gluLookAt(jogador.posicao.x+jogador.dir.x, jogador.posicao.y+0.23, jogador.posicao.z+jogador.dir.z,   // Posi��o do Observador
                   alvoX+jogador.dir.x, jogador.posicao.y, alvoZ+jogador.dir.z,     // Posi��o do Alvo
                   0.0f,1.0f,0.0f);
         }
@@ -544,12 +568,9 @@ void display( void )
 	glMatrixMode(GL_MODELVIEW);
 
     DesenhaPiso();
-//    glPushMatrix();
-//        glTranslatef(TABULEIRO_X/2, 0, TABULEIRO_Z/2);
-//        Objetos[0].ExibeObjeto();
-//    glPopMatrix();
+
     animaJogador();
-    desenhaGasolina();
+    DesenhaGasolinas();
 
 	glutSwapBuffers();
 }
@@ -585,7 +606,7 @@ void keyboard ( unsigned char key, int x, int y )
             break;
 
         case '7':
-            obsX+=1;
+            obsX+=2;
             break;
         case '4':
             obsX-=1;
@@ -615,7 +636,7 @@ void keyboard ( unsigned char key, int x, int y )
             break;
     }
 
-    printf("%d %d %d\n", obsX, obsY, obsZ);
+    //printf("%d %d %d\n", obsX, obsY, obsZ);
 
 
 }
@@ -638,14 +659,14 @@ void arrow_keys ( int a_keys, int x, int y )
             if(rotacao < 0){
                rotacao = 270; 
             }
-            printf("%f\n", jogador.rotacao);
+            //printf("%f\n", jogador.rotacao);
             break;
         case GLUT_KEY_RIGHT:
             rotacao += 90;
             if(rotacao >= 360){
                rotacao = 0; 
             }
-            printf("%f\n", jogador.rotacao);
+            //printf("%f\n", jogador.rotacao);
             break;
         case GLUT_KEY_DOWN:
             SPEED--;
