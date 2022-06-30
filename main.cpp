@@ -43,16 +43,18 @@ using namespace std;
 
 #define WIDTH 900
 #define HEIGHT 900
-#define GAS_SPAWN 50
+#define GAS_SPAWN 1000
 #define GAS_SPAWN_RATE 2000
 #define TERRAIN_VIEW 200
 #define BUILDING_RATE 5
 #define BUILDING_HEIGHT 10
 
-#define NOME_MAPA "Mapa1"
+#define NOME_MAPA "tabuleiro_1280"
 
-int SPEED {1};
-int MAX_SPEED {5};
+float SPEED {5};
+float MAX_SPEED {5};
+
+float constSpeed {1};
 
 int TABULEIRO_X {20};
 int TABULEIRO_Z {20};
@@ -81,7 +83,7 @@ int obsX = 0, obsY = 15, obsZ = 30;
 Modelo tabuleiro, disparador; 
 Instancia jogador;
 
-int camera = 0, qtdGasolina = 50;
+int camera = 0, qtdGasolina = 10000;
 vector<Instancia> gasolina;
 
 double nFrames=0;
@@ -167,9 +169,11 @@ void init(void)
     criaInstancias();
     obsX=0;obsY=6;obsZ=-4;
 
-    //CantoEsquerdo = {-static_cast<float>(TABULEIRO_X),-1, -static_cast<float>(TABULEIRO_Z)};
 
     CantoEsquerdo = {0,-1, 0};
+
+    constSpeed = (maior/10)/30;
+    SPEED = constSpeed; MAX_SPEED = constSpeed;
 
     glColorMaterial ( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
     if (ModoDeExibicao) // Faces Preenchidas??
@@ -419,7 +423,10 @@ void andaJogador(){
             jogador.dir.versor();
             SPEED = 1;
         }
-        else jogador.dir = Ponto(0,0,0);
+        else {
+            jogador.dir = Ponto(0,0,0);
+            SPEED = constSpeed;
+        }
     }
     qtdGasolina-=modulo;
     printf("quantidade gasolina = %d\n", qtdGasolina);
@@ -643,7 +650,7 @@ void keyboard ( unsigned char key, int x, int y )
             else {
                 jogador.dir.x = 0;
                 jogador.dir.z = 0;
-                SPEED = 1;
+                SPEED = constSpeed;
             }
             break;
         default:
@@ -666,7 +673,7 @@ void arrow_keys ( int a_keys, int x, int y )
         case GLUT_KEY_UP:     
             SPEED++;
             if(SPEED >= MAX_SPEED) SPEED = MAX_SPEED;
-            printf("speed = %d\n", SPEED);
+            printf("speed = %f\n", SPEED);
             break;
         case GLUT_KEY_LEFT:
             rotacao -= 90;
@@ -685,7 +692,7 @@ void arrow_keys ( int a_keys, int x, int y )
         case GLUT_KEY_DOWN:
             SPEED--;
             if(SPEED <= 0) SPEED = 1;
-            printf("speed = %d\n", SPEED);
+            printf("speed = %f\n", SPEED);
             break;
         default:
             break;
