@@ -43,7 +43,7 @@ using namespace std;
 
 #define WIDTH 900
 #define HEIGHT 900
-#define GAS_SPAWN 20
+#define GAS_SPAWN 50
 #define GAS_SPAWN_RATE 2000
 #define TERRAIN_VIEW 200
 #define BUILDING_RATE 5
@@ -275,12 +275,14 @@ void desenhaDisparador(int num){
 
 
 // **********************************************************************
+void DesenhaPredio(int altura, int cor);
 void desenhaGasolina(int num){
     glPushMatrix();
-        glTranslatef(0, -0.99, 0);
-        glScalef(0.1, 0.1, 0.1);
-        glRotatef(angulo, 0, 1, 0);
-        Objetos[1].ExibeObjeto();
+        glTranslatef(0, -0.9, 0);
+        glScalef(0.7, 0.5, 0.7);
+        glRotatef(angulo, 0.2, 1, 0);
+        //Objetos[1].ExibeObjeto();
+        DesenhaPredio(1, Red);
     glPopMatrix();
 }
 
@@ -398,6 +400,15 @@ void andaJogador(){
             if(piso == None)
                 goto here;
             jogador.posicao = verificaParedes;
+            int idx = 0;
+            for(Instancia gas: gasolina){
+                if(gas.posicao.x == jogador.posicao.x && jogador.posicao.z == gas.posicao.z){
+                    gasolina.erase(gasolina.begin()+idx);
+                    qtdGasolina+= 20;
+                    idx--;
+                }
+                idx++;
+            }
         }
         else goto here;
     }
@@ -410,10 +421,13 @@ void andaJogador(){
         }
         else jogador.dir = Ponto(0,0,0);
     }
+    qtdGasolina-=modulo;
+    printf("quantidade gasolina = %d\n", qtdGasolina);
 
 }
 void animaJogador(){
-    andaJogador();
+    if(qtdGasolina > 0)
+        andaJogador();
     if(jogador.dir.x == 0 && jogador.dir.z == 0)
         jogador.rotacao = rotacao;
 
@@ -624,7 +638,7 @@ void keyboard ( unsigned char key, int x, int y )
             obsZ-=1;
             break;
         case ' ':
-            if(jogador.dir.x == 0 && jogador.dir.z == 0)
+            if(jogador.dir.x == 0 && jogador.dir.z == 0 && qtdGasolina > 0)
                 andaFrente(jogador, rotacao, tabuleiro);
             else {
                 jogador.dir.x = 0;
